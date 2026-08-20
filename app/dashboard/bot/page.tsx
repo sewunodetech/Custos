@@ -96,17 +96,29 @@ export default function BotPage() {
   const [status, setStatus] = useState<ConnectionStatus>("disconnected");
   const [copied, setCopied] = useState(false);
   const [linkCodeCopied, setLinkCodeCopied] = useState(false);
+  const [statusLoading, setStatusLoading] = useState(true);
 
   const { linkCode, status: linkStatus, error: linkError, generateCode, reset: resetLink } = useTelegramLink();
 
-  const deepLink = linkCode ? `https://t.me/cuustos_bot?start=${linkCode}` : "";
-  const steps = linkCode ? 2 : 1;
+  useEffect(() => {
+    fetch("/api/telegram/status")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.linked) {
+          setStatus("connected");
+        }
+      })
+      .catch(() => {})
+      .finally(() => setStatusLoading(false));
+  }, []);
 
   useEffect(() => {
     if (linkStatus === "loading") {
       setStatus("pending");
     }
   }, [linkStatus]);
+
+  const deepLink = linkCode ? `https://t.me/cuustos_bot?start=${linkCode}` : "";
 
   const [prefs, setPrefs] = useState<NotificationPref[]>([
     {
@@ -213,7 +225,7 @@ export default function BotPage() {
                 <div>
                   <p className="text-[13px] font-medium text-white/80">@cuustos_bot</p>
                   <p className="text-[11px] text-white/30">
-                    {isConnected ? "Connected · notifications active" : "Not connected"}
+                    {statusLoading ? "Checking status..." : isConnected ? "Connected · notifications active" : "Not connected"}
                   </p>
                 </div>
               </div>
@@ -242,7 +254,11 @@ export default function BotPage() {
             </div>
 
             <div className="p-5">
-              {isConnected ? (
+              {statusLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-5 h-5 text-white/20 animate-spin" strokeWidth={1.5} />
+                </div>
+              ) : isConnected ? (
                 <div className="flex flex-col gap-4">
                   <div
                     className="flex items-center gap-2.5 p-3 rounded-[8px]"

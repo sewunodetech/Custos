@@ -54,9 +54,18 @@ export default function ConnectPage() {
 
   useEffect(() => {
     if (isConnected && step === "connect") {
-      setStep("sign");
+      // Check if session already valid before prompting sign-in
+      fetch("/api/auth/me")
+        .then((res) => {
+          if (res.ok) {
+            router.replace("/dashboard");
+          } else {
+            setStep("sign");
+          }
+        })
+        .catch(() => setStep("sign"));
     }
-  }, [isConnected, step]);
+  }, [isConnected, step, router]);
 
   useEffect(() => {
     if (isConnected && step === "sign") {
