@@ -4,8 +4,9 @@ import { useState } from "react";
 import { useAccount, useDisconnect, useChainId, useChains } from "wagmi";
 import {
   ShieldCheck, Save, AlertTriangle, ToggleLeft, ToggleRight,
-  Info, Copy, CheckCheck,
+  Info, Copy, CheckCheck, Send, Loader2, Link2,
 } from "lucide-react";
+import { useTelegramLink } from "@/hooks/useTelegramLink";
 
 function SectionCard({ title, description, children }: {
   title: string;
@@ -88,6 +89,9 @@ export default function SettingsPage() {
 
   const [saved, setSaved] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [linkCodeCopied, setLinkCodeCopied] = useState(false);
+
+  const { linkCode, status: linkStatus, error: linkError, generateCode, reset: resetLink } = useTelegramLink();
 
   const handleSave = () => {
     // TODO: persist to backend / smart contract
@@ -230,6 +234,82 @@ export default function SettingsPage() {
             className="w-56 h-8 px-3 rounded-[6px] bg-white/[0.04] border border-white/[0.08] text-[11px] font-mono text-white/60 placeholder:text-white/15 outline-none focus:border-white/20 transition-colors"
           />
         </FieldRow>
+      </SectionCard>
+
+      {/* Telegram linking */}
+      <SectionCard
+        title="Telegram notifications"
+        description="Link your Telegram account to receive real-time liquidation risk alerts."
+      >
+        {!linkCode ? (
+          <div className="flex flex-col items-start gap-3">
+            <p className="text-[12px] text-white/40">
+              Generate a one-time code and send it to the Custos Telegram bot to link your account.
+            </p>
+            <button
+              onClick={generateCode}
+              disabled={linkStatus === "loading"}
+              className="inline-flex items-center gap-1.5 h-8 px-4 rounded-[6px] bg-white/[0.06] border border-white/[0.08] text-white/60 text-[12px] hover:bg-white/[0.10] hover:text-white/80 transition-colors disabled:opacity-40"
+            >
+              {linkStatus === "loading" ? (
+                <><Loader2 className="w-3.5 h-3.5 animate-spin" strokeWidth={1.5} />Generating...</>
+              ) : (
+                <><Link2 className="w-3.5 h-3.5" strokeWidth={1.5} />Generate link code</>
+              )}
+            </button>
+            {linkError && (
+              <div className="flex items-start gap-2 px-3 py-2 rounded-[6px] bg-red-500/8 border border-red-500/15">
+                <AlertTriangle className="w-3 h-3 text-red-400/70 shrink-0 mt-0.5" strokeWidth={1.5} />
+                <p className="text-[11px] text-red-400/70">{linkError}</p>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="flex flex-col items-start gap-4">
+            <div className="flex items-center gap-3 w-full">
+              <div className="flex-1 flex items-center gap-2 h-10 px-3.5 rounded-[7px] bg-white/[0.04] border border-white/[0.08]">
+                <span className="font-mono text-[14px] text-white/70 tracking-[0.2em] select-all">{linkCode}</span>
+              </div>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(`https://t.me/CustosBot?start=${linkCode}`);
+                  setLinkCodeCopied(true);
+                  setTimeout(() => setLinkCodeCopied(false), 2000);
+                }}
+                className="flex items-center gap-1.5 h-10 px-3.5 rounded-[7px] bg-white/[0.06] border border-white/[0.08] text-white/50 text-[12px] hover:bg-white/[0.10] hover:text-white/70 transition-colors shrink-0"
+              >
+                {linkCodeCopied ? (
+                  <><CheckCheck className="w-3.5 h-3.5 text-emerald-400" strokeWidth={2} />Copied</>
+                ) : (
+                  <><Copy className="w-3.5 h-3.5" strokeWidth={1.5} />Copy link</>
+                )}
+              </button>
+            </div>
+            <div className="flex items-start gap-2.5 px-3 py-2.5 rounded-[7px] bg-emerald-400/[0.06] border border-emerald-400/15">
+              <Send className="w-3.5 h-3.5 text-emerald-400/60 shrink-0 mt-0.5" strokeWidth={1.5} />
+              <div>
+                <p className="text-[11px] text-emerald-400/70 leading-relaxed">
+                  Send this link to{" "}
+                  <a
+                    href={`https://t.me/CustosBot?start=${linkCode}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline underline-offset-2 hover:text-emerald-400"
+                  >
+                    @CustosBot
+                  </a>{" "}
+                  on Telegram to complete linking. Code expires in 10 minutes.
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={resetLink}
+              className="text-[11px] text-white/20 hover:text-white/40 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        )}
       </SectionCard>
 
       {/* Risk notice */}

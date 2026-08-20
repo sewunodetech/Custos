@@ -34,7 +34,7 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { isConnected, address } = useAuthGuard();
+  const { isConnected, address, sessionChecked } = useAuthGuard();
   const { disconnect } = useDisconnect();
   const router = useRouter();
 
@@ -52,7 +52,7 @@ export default function DashboardLayout({
     setActiveId(id);
   };
 
-  if (!isConnected) {
+  if (!isConnected || !sessionChecked) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: "#080808" }}>
         <Loader2 className="w-5 h-5 text-white/20 animate-spin" strokeWidth={1.5} />

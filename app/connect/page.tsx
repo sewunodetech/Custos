@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAccount, useConnect, useDisconnect } from "wagmi";
-import { ShieldCheck, Wallet, AlertCircle, Loader2 } from "lucide-react";
+import { useAccount, useConnect, useDisconnect, useChainId } from "wagmi";
+import { useAuth } from "@/hooks/useAuth";
+import { ShieldCheck, Wallet, AlertCircle, Loader2, ArrowLeft } from "lucide-react";
 
 const WALLETS = [
   {
@@ -43,19 +44,35 @@ const WALLETS = [
 
 export default function ConnectPage() {
   const router = useRouter();
-  const { isConnected } = useAccount();
-  const { connect, connectors, isPending, error, variables } = useConnect();
+  const { isConnected, address } = useAccount();
+  const chainId = useChainId();
+  const { connect, connectors, isPending, error: connectError, variables } = useConnect();
   const { disconnect } = useDisconnect();
+  const { signIn, status: authStatus, error: authError, reset: resetAuth } = useAuth();
 
-  // Redirect to dashboard once connected
+  const [step, setStep] = useState<"connect" | "sign">("connect");
+
   useEffect(() => {
-    if (isConnected) router.replace("/dashboard");
-  }, [isConnected, router]);
+    if (isConnected && step === "connect") {
+      setStep("sign");
+    }
+  }, [isConnected, step]);
+
+  useEffect(() => {
+    if (isConnected && step === "sign") {
+      signIn();
+    }
+  }, [isConnected, step, signIn]);
+
+  useEffect(() => {
+    if (authStatus === "authenticated") {
+      router.replace("/dashboard");
+    }
+  }, [authStatus, router]);
 
   const getConnectorByWalletId = (id: string) => {
     if (id === "metaMask") return connectors.find((c) => c.name === "MetaMask" || (c.id === "injected" && c.name?.toLowerCase().includes("metamask")));
     if (id === "walletConnect") return connectors.find((c) => c.id === "walletConnect");
-    // generic injected
     return connectors.find((c) => c.id === "injected");
   };
 
@@ -65,12 +82,19 @@ export default function ConnectPage() {
     connect({ connector });
   };
 
+  const handleBack = () => {
+    disconnect();
+    resetAuth();
+    setStep("connect");
+  };
+
+  const short = address ? `${address.slice(0, 6)}...${address.slice(-4)}` : "";
+
   return (
     <div
       className="min-h-screen flex flex-col items-center justify-center px-4"
       style={{ background: "#080808" }}
     >
-      {/* Ambient glow */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
@@ -80,74 +104,130 @@ export default function ConnectPage() {
       />
 
       <div className="relative z-10 w-full max-w-[400px]">
-        {/* Logo */}
         <div className="flex flex-col items-center mb-10">
           <div className="w-12 h-12 rounded-[10px] border border-white/10 bg-white/5 flex items-center justify-center mb-4">
             <ShieldCheck className="w-6 h-6 text-white/80" strokeWidth={1.5} />
           </div>
           <h1 className="text-[20px] font-semibold text-white tracking-[-0.02em] mb-1">
-            Connect to Custos
+            {step === "connect" ? "Connect to Custos" : "Sign in"}
           </h1>
           <p className="text-[13px] text-white/35 text-center max-w-[280px]">
-            Connect your wallet to monitor and protect your DeFi positions.
+            {step === "connect"
+              ? "Connect your wallet to monitor and protect your DeFi positions."
+              : "Sign the message to verify wallet ownership."}
           </p>
         </div>
 
-        {/* Wallet options */}
-        <div className="flex flex-col gap-2">
-          {WALLETS.map((wallet) => {
-            const connector = getConnectorByWalletId(wallet.id);
-            // variables.connector is CreateConnectorFn | Connector — use name comparison
-            const pendingConnector = isPending
-              ? connectors.find((c) => c === variables?.connector)
-              : undefined;
-            const isLoading = isPending && pendingConnector?.id === connector?.id;
+        {step === "connect" && (
+          <div className="flex flex-col gap-2">
+            {WALLETS.map((wallet) => {
+              const connector = getConnectorByWalletId(wallet.id);
+              const pendingConnector = isPending
+                ? connectors.find((c) => c === variables?.connector)
+                : undefined;
+              const isLoading = isPending && pendingConnector?.id === connector?.id;
 
-            return (
-              <button
-                key={wallet.id}
-                onClick={() => handleConnect(wallet.id)}
-                disabled={isPending || !connector}
-                className="w-full flex items-center gap-4 px-4 py-3.5 rounded-[10px] border border-white/[0.07] bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/[0.12] transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed text-left group"
-              >
-                <div className="w-10 h-10 rounded-[8px] bg-white/5 border border-white/[0.07] flex items-center justify-center shrink-0">
-                  {isLoading ? (
-                    <Loader2 className="w-5 h-5 text-white/50 animate-spin" strokeWidth={1.5} />
-                  ) : (
-                    wallet.icon
+              return (
+                <button
+                  key={wallet.id}
+                  onClick={() => handleConnect(wallet.id)}
+                  disabled={isPending || !connector}
+                  className="w-full flex items-center gap-4 px-4 py-3.5 rounded-[10px] border border-white/[0.07] bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/[0.12] transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed text-left group"
+                >
+                  <div className="w-10 h-10 rounded-[8px] bg-white/5 border border-white/[0.07] flex items-center justify-center shrink-0">
+                    {isLoading ? (
+                      <Loader2 className="w-5 h-5 text-white/50 animate-spin" strokeWidth={1.5} />
+                    ) : (
+                      wallet.icon
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-medium text-white/80 group-hover:text-white transition-colors">
+                      {wallet.name}
+                    </p>
+                    <p className="text-[11px] text-white/30 mt-0.5">
+                      {wallet.description}
+                    </p>
+                  </div>
+                  {!connector && (
+                    <span className="text-[10px] font-mono text-white/20 shrink-0">
+                      Not detected
+                    </span>
                   )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-medium text-white/80 group-hover:text-white transition-colors">
-                    {wallet.name}
-                  </p>
-                  <p className="text-[11px] text-white/30 mt-0.5">
-                    {wallet.description}
-                  </p>
-                </div>
-                {!connector && (
-                  <span className="text-[10px] font-mono text-white/20 shrink-0">
-                    Not detected
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
+                </button>
+              );
+            })}
 
-        {/* Error */}
-        {error && (
-          <div className="mt-4 flex items-start gap-2.5 px-4 py-3 rounded-[8px] bg-red-500/8 border border-red-500/15">
-            <AlertCircle className="w-4 h-4 text-red-400/70 shrink-0 mt-0.5" strokeWidth={1.5} />
-            <p className="text-[12px] text-red-400/70 leading-relaxed">
-              {error.message?.includes("User rejected")
-                ? "Connection rejected."
-                : (error.message ?? "Failed to connect.")}
-            </p>
+            {connectError && (
+              <div className="mt-4 flex items-start gap-2.5 px-4 py-3 rounded-[8px] bg-red-500/8 border border-red-500/15">
+                <AlertCircle className="w-4 h-4 text-red-400/70 shrink-0 mt-0.5" strokeWidth={1.5} />
+                <p className="text-[12px] text-red-400/70 leading-relaxed">
+                  {connectError.message?.includes("User rejected")
+                    ? "Connection rejected."
+                    : (connectError.message ?? "Failed to connect.")}
+                </p>
+              </div>
+            )}
           </div>
         )}
 
-        {/* Footer */}
+        {step === "sign" && (
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-full p-4 rounded-[10px] border border-white/[0.07] bg-white/[0.02]">
+              <div className="flex items-center gap-2.5 mb-3">
+                <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="font-mono text-[11px] text-white/45">{short}</span>
+                <span className="text-[10px] text-white/15">{chainId ? `Chain ${chainId}` : ""}</span>
+              </div>
+
+              {authStatus === "loading-nonce" && (
+                <div className="flex items-center gap-2.5 text-white/30">
+                  <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.5} />
+                  <span className="text-[12px]">Fetching sign-in request...</span>
+                </div>
+              )}
+
+              {authStatus === "awaiting-signature" && (
+                <div className="flex items-center gap-2.5 text-white/50">
+                  <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.5} />
+                  <span className="text-[12px]">Waiting for signature...</span>
+                </div>
+              )}
+
+              {authStatus === "verifying" && (
+                <div className="flex items-center gap-2.5 text-white/30">
+                  <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1.5} />
+                  <span className="text-[12px]">Verifying signature...</span>
+                </div>
+              )}
+
+              {authStatus === "error" && (
+                <div>
+                  <div className="flex items-start gap-2.5 px-3 py-2.5 rounded-[7px] bg-red-500/8 border border-red-500/15 mb-3">
+                    <AlertCircle className="w-3.5 h-3.5 text-red-400/70 shrink-0 mt-0.5" strokeWidth={1.5} />
+                    <p className="text-[11px] text-red-400/70 leading-relaxed">{authError}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleBack}
+                      className="flex items-center gap-1.5 h-8 px-3 rounded-[6px] border border-white/[0.08] text-white/40 text-[12px] hover:bg-white/[0.04] hover:text-white/60 transition-colors"
+                    >
+                      <ArrowLeft className="w-3 h-3" strokeWidth={1.5} />
+                      Back
+                    </button>
+                    <button
+                      onClick={signIn}
+                      className="h-8 px-4 rounded-[6px] bg-white text-[#080808] text-[12px] font-semibold hover:bg-white/90 transition-colors"
+                    >
+                      Try again
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         <p className="mt-8 text-center text-[11px] text-white/20">
           By connecting you agree to our{" "}
           <span className="underline underline-offset-2 cursor-pointer hover:text-white/40 transition-colors">
