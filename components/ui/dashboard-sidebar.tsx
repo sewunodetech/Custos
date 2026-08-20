@@ -2,161 +2,194 @@
 
 import React, { useState } from "react";
 import {
-  Search,
-  LayoutDashboard,
-  Settings,
-  LogOut,
-  Hash,
-  ChevronRight,
-  ShieldCheck,
-  Clock,
-  X,
-  Command,
+  LayoutDashboard, ShieldCheck, Clock, Settings, LogOut,
+  Search, MessageSquare, Bot, Hash, ChevronRight, X,
+  Command, MoreHorizontal,
 } from "lucide-react";
 
-export type NavItemData = {
+/* ══════════════════════════════════════════════════════════════════════════
+   TYPES
+   ══════════════════════════════════════════════════════════════════════════ */
+export type NavItem = {
   id: string;
-  title: string;
+  label: string;
   icon: React.ElementType;
-  badge?: number | string;
+  badge?: string | number;
   shortcut?: string;
-  children?: NavItemData[];
+  children?: NavItem[];
 };
+type NavGroup = { heading?: string; items: NavItem[] };
 
-export type NavGroupData = {
-  heading?: string;
-  items: NavItemData[];
-};
-
-const NAV_GROUPS: NavGroupData[] = [
+/* ══════════════════════════════════════════════════════════════════════════
+   NAV DATA
+   ══════════════════════════════════════════════════════════════════════════ */
+const NAV_GROUPS: NavGroup[] = [
   {
     items: [
-      { id: "search", title: "Search", icon: Search, shortcut: "⌘K" },
-      { id: "home", title: "Overview", icon: LayoutDashboard },
-    ],
-  },
-  {
-    heading: "Protection",
-    items: [
+      { id: "home",      label: "Overview",  icon: LayoutDashboard },
       {
-        id: "positions",
-        title: "Positions",
-        icon: ShieldCheck,
+        id: "positions", label: "Positions", icon: ShieldCheck,
         children: [
-          { id: "pos-active", title: "Active", icon: Hash },
-          { id: "pos-monitoring", title: "Monitoring", icon: Hash },
+          { id: "pos-active",     label: "Active",     icon: Hash },
+          { id: "pos-monitoring", label: "Monitoring", icon: Hash },
         ],
       },
-      { id: "history", title: "History", icon: Clock },
+      { id: "history", label: "History", icon: Clock },
+    ],
+  },
+  {
+    heading: "Intelligence",
+    items: [
+      { id: "chat", label: "AI Assistant", icon: MessageSquare, badge: "AI" },
+      { id: "bot",  label: "Telegram Bot", icon: Bot },
     ],
   },
 ];
 
-const BOTTOM_ITEMS: NavItemData[] = [
-  { id: "settings", title: "Settings", icon: Settings, shortcut: "⌘," },
-  { id: "logout", title: "Disconnect", icon: LogOut },
+const BOTTOM_ITEMS: NavItem[] = [
+  { id: "settings", label: "Settings",    icon: Settings, shortcut: "⌘," },
+  { id: "logout",   label: "Disconnect",  icon: LogOut },
 ];
 
-function WalletChip({ address }: { address?: string }) {
-  const short = address
-    ? `${address.slice(0, 6)}...${address.slice(-4)}`
-    : "Not connected";
-
-  return (
-    <div className="flex items-center gap-3 px-2 py-2 mb-3 select-none">
-      <div className="w-8 h-8 rounded-[6px] bg-white/[0.06] border border-white/[0.08] flex items-center justify-center shrink-0">
-        <ShieldCheck className="w-4 h-4 text-white/60" strokeWidth={1.5} />
-      </div>
-      <div className="flex flex-col overflow-hidden min-w-0">
-        <span className="text-[13px] font-semibold leading-none mb-1 text-white tracking-[-0.01em]">
-          Custos
-        </span>
-        <span className="text-[10px] text-white/30 leading-none font-mono truncate">
-          {short}
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function NavItem({
-  item,
-  activeId,
-  onSelect,
-  level = 0,
+/* ══════════════════════════════════════════════════════════════════════════
+   NAV ROW
+   ══════════════════════════════════════════════════════════════════════════ */
+function NavRow({
+  item, activeId, onSelect, level = 0, collapsed,
 }: {
-  item: NavItemData;
+  item: NavItem;
   activeId: string;
   onSelect: (id: string) => void;
   level?: number;
+  collapsed: boolean;
 }) {
-  const isActive = activeId === item.id || item.children?.some((c) => c.id === activeId);
+  const isActive    = activeId === item.id || (item.children?.some((c) => c.id === activeId) ?? false);
   const hasChildren = !!item.children;
-  const [isOpen, setIsOpen] = useState(isActive);
+  const [open, setOpen] = useState(isActive);
 
   const handleClick = () => {
-    if (hasChildren) setIsOpen((v) => !v);
-    else onSelect(item.id);
+    if (hasChildren) { setOpen((v) => !v); return; }
+    onSelect(item.id);
   };
 
   return (
     <div className="flex flex-col w-full">
       <div
-        className={`group flex items-center justify-between rounded-[6px] cursor-pointer transition-all duration-150 select-none
-          ${isActive && !hasChildren
-            ? "bg-white/[0.08] text-white"
-            : "text-white/40 hover:bg-white/[0.04] hover:text-white/75"
-          }`}
+        role="button"
+        tabIndex={0}
+        onClick={handleClick}
+        onKeyDown={(e) => e.key === "Enter" && handleClick()}
+        title={collapsed ? item.label : undefined}
+        className="relative flex items-center w-full rounded-[6px] cursor-pointer select-none outline-none transition-colors duration-100"
         style={{
+          gap: collapsed ? 0 : 8,
           paddingTop: 6,
           paddingBottom: 6,
-          paddingLeft: level * 12 + 10,
-          paddingRight: 10,
+          paddingLeft: collapsed ? 8 : level * 16 + 10,
+          paddingRight: collapsed ? 8 : 8,
+          justifyContent: collapsed ? "center" : "flex-start",
+          backgroundColor: isActive && !hasChildren ? "var(--item-active-bg)" : undefined,
+          color: isActive && !hasChildren ? "var(--item-active-text)" : "var(--text-secondary)",
         }}
-        onClick={handleClick}
+        onMouseEnter={(e) => {
+          if (!(isActive && !hasChildren)) {
+            (e.currentTarget as HTMLDivElement).style.backgroundColor = "var(--item-hover)";
+            (e.currentTarget as HTMLDivElement).style.color = "var(--text-primary)";
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (!(isActive && !hasChildren)) {
+            (e.currentTarget as HTMLDivElement).style.backgroundColor = "";
+            (e.currentTarget as HTMLDivElement).style.color = "var(--text-secondary)";
+          }
+        }}
       >
-        <div className="flex items-center gap-2.5">
-          <item.icon
-            className={`w-[14px] h-[14px] shrink-0 transition-colors ${
-              isActive && !hasChildren ? "text-white" : "text-white/30 group-hover:text-white/55"
-            }`}
-            strokeWidth={1.5}
+        {/* Active left bar */}
+        {isActive && !hasChildren && !collapsed && (
+          <span
+            className="absolute left-0 top-1 bottom-1 w-[3px] rounded-r-full"
+            style={{ backgroundColor: "#2dd4bf" }}
           />
-          <span className="text-[12.5px] tracking-[-0.005em] truncate">{item.title}</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          {item.shortcut && (
-            <kbd className="hidden group-hover:inline-flex items-center h-4 px-1 text-[9px] font-mono text-white/25 bg-white/[0.04] border border-white/[0.08] rounded-[3px]">
-              {item.shortcut}
-            </kbd>
-          )}
-          {item.badge !== undefined && (
-            <span className="flex items-center justify-center min-w-[16px] h-[16px] px-1 text-[9px] font-medium rounded-full bg-white/[0.08] text-white/50">
-              {item.badge}
+        )}
+
+        <item.icon
+          style={{
+            width: 15, height: 15,
+            flexShrink: 0,
+            color: isActive && !hasChildren ? "#2dd4bf" : "var(--text-tertiary)",
+          }}
+          strokeWidth={isActive && !hasChildren ? 2 : 1.5}
+        />
+
+        {!collapsed && (
+          <>
+            <span className="flex-1 text-[12.5px] tracking-[-0.01em] truncate leading-none">
+              {item.label}
             </span>
-          )}
-          {hasChildren && (
-            <ChevronRight
-              className={`w-3 h-3 text-white/15 transition-transform duration-200 ${isOpen ? "rotate-90" : ""}`}
-              strokeWidth={2}
-            />
-          )}
-        </div>
+
+            <div className="flex items-center gap-1 ml-auto shrink-0">
+              {item.badge && (
+                <span
+                  className="inline-flex items-center h-4 px-1.5 rounded-[4px] text-[9px] font-bold font-mono tracking-wide"
+                  style={{
+                    backgroundColor: "var(--item-active-bg)",
+                    color: "var(--text-secondary)",
+                  }}
+                >
+                  {item.badge}
+                </span>
+              )}
+              {item.shortcut && (
+                <kbd
+                  className="hidden group-hover:inline-flex items-center h-4 px-1.5 text-[9px] font-mono rounded-[4px]"
+                  style={{
+                    color: "var(--text-tertiary)",
+                    backgroundColor: "var(--bg-subtle)",
+                    border: "1px solid var(--border)",
+                  }}
+                >
+                  {item.shortcut}
+                </kbd>
+              )}
+              {hasChildren && (
+                <ChevronRight
+                  style={{
+                    width: 12, height: 12,
+                    color: "var(--text-tertiary)",
+                    transform: open ? "rotate(90deg)" : undefined,
+                    transition: "transform 0.2s",
+                  }}
+                  strokeWidth={2}
+                />
+              )}
+            </div>
+          </>
+        )}
       </div>
 
-      {hasChildren && (
+      {/* Children */}
+      {hasChildren && !collapsed && (
         <div
-          className={`grid transition-[grid-template-rows,opacity] duration-200 ease-in-out ${
-            isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
-          }`}
+          className="grid transition-[grid-template-rows,opacity] duration-200 ease-in-out"
+          style={{ gridTemplateRows: open ? "1fr" : "0fr", opacity: open ? 1 : 0 }}
         >
           <div className="overflow-hidden min-h-0 relative flex flex-col gap-0.5 mt-0.5">
             <div
-              className="absolute top-0 bottom-0 w-px bg-white/[0.05]"
-              style={{ left: level * 12 + 17 }}
+              className="absolute top-0 bottom-0 w-px"
+              style={{
+                left: level * 16 + 18,
+                backgroundColor: "var(--border)",
+              }}
             />
             {item.children!.map((child) => (
-              <NavItem key={child.id} item={child} activeId={activeId} onSelect={onSelect} level={level + 1} />
+              <NavRow
+                key={child.id}
+                item={child}
+                activeId={activeId}
+                onSelect={onSelect}
+                level={level + 1}
+                collapsed={false}
+              />
             ))}
           </div>
         </div>
@@ -165,111 +198,319 @@ function NavItem({
   );
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   SIDEBAR NAV
+   ══════════════════════════════════════════════════════════════════════════ */
 export function SidebarNav({
-  className = "",
-  activeId,
+  activeId = "home",
   onSelect,
   address,
   onDisconnect,
+  collapsed = false,
 }: {
-  className?: string;
   activeId?: string;
   onSelect?: (id: string) => void;
   address?: string;
   onDisconnect?: () => void;
+  collapsed?: boolean;
 }) {
-  const [internalId, setInternalId] = useState("home");
-  const currentId = activeId !== undefined ? activeId : internalId;
+  const short = address ? `${address.slice(0, 6)}…${address.slice(-4)}` : "Not connected";
 
   const handleSelect = (id: string) => {
     if (id === "logout") { onDisconnect?.(); return; }
-    onSelect ? onSelect(id) : setInternalId(id);
+    onSelect?.(id);
   };
 
   return (
-    <div
-      className={`flex flex-col w-[220px] h-full border-r border-white/[0.05] p-3 ${className}`}
-      style={{ background: "#0a0a0c" }}
+    <nav
+      className="flex flex-col h-full overflow-hidden"
+      style={{
+        width: collapsed ? 52 : 232,
+        background: "var(--sidebar-bg)",
+        borderRight: "1px solid var(--sidebar-border)",
+      }}
     >
-      <WalletChip address={address} />
-
-      <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] flex flex-col gap-3">
-        {NAV_GROUPS.map((group, idx) => (
-          <div key={idx} className="flex flex-col gap-0.5">
-            {group.heading && (
-              <span className="px-2.5 pt-1 pb-1 text-[10px] font-medium tracking-[0.12em] text-white/20 uppercase">
-                {group.heading}
+      {/* ── Logo header ──────────────────────────────────────────── */}
+      <div
+        className="shrink-0 flex items-center h-[52px] px-4"
+        style={{ borderBottom: "1px solid var(--sidebar-border)" }}
+      >
+        {collapsed ? (
+          <div
+            className="w-7 h-7 rounded-[6px] flex items-center justify-center"
+            style={{
+              background: "rgba(45,212,191,0.1)",
+              border: "1px solid rgba(45,212,191,0.25)",
+            }}
+          >
+            <ShieldCheck style={{ width: 14, height: 14, color: "#2dd4bf" }} strokeWidth={1.5} />
+          </div>
+        ) : (
+          <div className="flex items-center gap-2.5">
+            <div
+              className="w-[28px] h-[28px] rounded-[6px] flex items-center justify-center shrink-0"
+              style={{
+                background: "rgba(45,212,191,0.1)",
+                border: "1px solid rgba(45,212,191,0.25)",
+              }}
+            >
+              <ShieldCheck style={{ width: 14, height: 14, color: "#2dd4bf" }} strokeWidth={1.5} />
+            </div>
+            <div className="flex flex-col">
+              <span
+                className="text-[13px] font-semibold leading-none tracking-[-0.02em]"
+                style={{ color: "var(--text-primary)" }}
+              >
+                Custos
               </span>
+              <span
+                className="text-[10px] leading-none mt-0.5 font-mono"
+                style={{ color: "#2dd4bf", opacity: 0.6 }}
+              >
+                Risk Automation
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ── Nav groups ──────────────────────────────────────────── */}
+      <div className="flex-1 overflow-y-auto scrollbar-hide px-2 py-3 flex flex-col gap-5">
+        {NAV_GROUPS.map((group, gi) => (
+          <div key={gi} className="flex flex-col gap-0.5">
+            {group.heading && !collapsed && (
+              <div className="px-2 pb-1 pt-0.5">
+                <span
+                  className="text-[10px] font-semibold tracking-[0.08em] uppercase"
+                  style={{ color: "var(--text-tertiary)" }}
+                >
+                  {group.heading}
+                </span>
+              </div>
             )}
             {group.items.map((item) => (
-              <NavItem key={item.id} item={item} activeId={currentId} onSelect={handleSelect} />
+              <NavRow
+                key={item.id}
+                item={item}
+                activeId={activeId}
+                onSelect={handleSelect}
+                collapsed={collapsed}
+              />
             ))}
           </div>
         ))}
       </div>
 
-      <div className="mt-auto pt-3 border-t border-white/[0.05] flex flex-col gap-0.5">
+      {/* ── Bottom: settings + wallet ─────────────────────────── */}
+      <div
+        className="shrink-0 px-2 py-2 flex flex-col gap-0.5"
+        style={{ borderTop: "1px solid var(--sidebar-border)" }}
+      >
         {BOTTOM_ITEMS.map((item) => (
-          <NavItem key={item.id} item={item} activeId={currentId} onSelect={handleSelect} />
+          <NavRow
+            key={item.id}
+            item={item}
+            activeId={activeId}
+            onSelect={handleSelect}
+            collapsed={collapsed}
+          />
         ))}
+
+        {/* Wallet identity row */}
+        {!collapsed && (
+          <div
+            className="flex items-center gap-2.5 mt-1.5 px-2.5 py-2 rounded-[8px]"
+            style={{
+              background: "var(--bg-subtle)",
+              border: "1px solid var(--border)",
+            }}
+          >
+            {/* Avatar */}
+            <div
+              className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-[11px] font-semibold"
+              style={{
+                background: "var(--item-active-bg)",
+                border: "1px solid var(--border-strong)",
+                color: "var(--text-primary)",
+              }}
+            >
+              {address ? address.slice(2, 4).toUpperCase() : "?"}
+            </div>
+            <div className="flex flex-col min-w-0 flex-1">
+              <span
+                className="text-[11.5px] font-medium leading-none truncate"
+                style={{ color: "var(--text-primary)" }}
+              >
+                {short}
+              </span>
+              {/* <div className="flex items-center gap-1 mt-0.5">
+                <span
+                  className="w-1.5 h-1.5 rounded-full"
+                  style={{ backgroundColor: "var(--safe)" }}
+                />
+                <span
+                  className="text-[10px] font-mono leading-none"
+                  style={{ color: "var(--text-tertiary)" }}
+                >
+                  Base · Connected
+                </span>
+              </div> */}
+            </div>
+            <button
+              className="shrink-0 p-1 rounded-[4px] transition-colors"
+              style={{ color: "var(--text-tertiary)" }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-tertiary)")}
+            >
+              <MoreHorizontal style={{ width: 13, height: 13 }} strokeWidth={1.5} />
+            </button>
+          </div>
+        )}
       </div>
-    </div>
+    </nav>
   );
 }
 
-// ── Flat items for search ─────────────────────────────────────────────────
-const flattenItems = (items: NavItemData[]): NavItemData[] =>
+/* ══════════════════════════════════════════════════════════════════════════
+   FLAT ITEMS FOR SEARCH
+   ══════════════════════════════════════════════════════════════════════════ */
+const flattenItems = (items: NavItem[]): NavItem[] =>
   items.reduce((acc, item) => {
     acc.push(item);
     if (item.children) acc.push(...flattenItems(item.children));
     return acc;
-  }, [] as NavItemData[]);
+  }, [] as NavItem[]);
 
-const allItems = [...NAV_GROUPS.flatMap((g) => g.items), ...BOTTOM_ITEMS];
-export const flatNavItems = flattenItems(allItems);
+export const flatNavItems = flattenItems([
+  ...NAV_GROUPS.flatMap((g) => g.items),
+  ...BOTTOM_ITEMS,
+]);
 
-// ── Search modal ──────────────────────────────────────────────────────────
-export function SearchModal({ onClose, onSelect }: { onClose: () => void; onSelect: (id: string) => void }) {
+/* ══════════════════════════════════════════════════════════════════════════
+   SEARCH MODAL
+   ══════════════════════════════════════════════════════════════════════════ */
+export function SearchModal({
+  onClose, onSelect,
+}: {
+  onClose: () => void;
+  onSelect: (id: string) => void;
+}) {
   const [query, setQuery] = useState("");
-  const results = query
-    ? flatNavItems.filter((i) => i.title.toLowerCase().includes(query.toLowerCase()))
-    : [];
+  const results = query.length > 0
+    ? flatNavItems.filter((i) => i.label.toLowerCase().includes(query.toLowerCase()))
+    : flatNavItems.filter((i) => !["pos-active", "pos-monitoring", "logout"].includes(i.id));
 
   return (
-    <div className="absolute inset-0 z-50 flex items-start justify-center pt-[14vh] bg-black/70 backdrop-blur-sm px-4">
+    <div
+      className="absolute inset-0 z-50 flex items-start justify-center px-4"
+      style={{ paddingTop: "12vh", background: "rgba(0,0,0,0.45)", backdropFilter: "blur(4px)" }}
+    >
       <div className="absolute inset-0" onClick={onClose} />
-      <div className="relative w-full max-w-lg rounded-[12px] border border-white/[0.08] shadow-2xl overflow-hidden" style={{ background: "#111113" }}>
-        <div className="flex items-center px-4 border-b border-white/[0.06]">
-          <Search className="w-4 h-4 text-white/25 mr-3 shrink-0" strokeWidth={1.5} />
+      <div
+        className="relative w-full max-w-[520px] rounded-[12px] shadow-2xl overflow-hidden"
+        style={{
+          background: "var(--bg-elevated)",
+          border: "1px solid var(--border-strong)",
+        }}
+      >
+        {/* Input row */}
+        <div
+          className="flex items-center gap-3 px-4"
+          style={{ borderBottom: "1px solid var(--border)" }}
+        >
+          <Search style={{ width: 14, height: 14, color: "var(--text-tertiary)", flexShrink: 0 }} strokeWidth={1.5} />
           <input
             autoFocus
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="flex-1 bg-transparent py-3.5 outline-none text-[13px] text-white placeholder:text-white/20"
-            placeholder="Search pages..."
+            onKeyDown={(e) => e.key === "Escape" && onClose()}
+            className="flex-1 bg-transparent py-3.5 outline-none text-[13px]"
+            style={{ color: "var(--text-primary)" }}
+            placeholder="Search pages and actions..."
           />
-          <button onClick={onClose} className="ml-2 p-1 text-white/25 hover:text-white/60 transition-colors">
-            <X className="w-3.5 h-3.5" strokeWidth={1.5} />
+          <button
+            onClick={onClose}
+            className="p-1 rounded-[5px] transition-colors"
+            style={{ color: "var(--text-tertiary)" }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = "var(--item-hover)";
+              (e.currentTarget as HTMLButtonElement).style.color = "var(--text-primary)";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = "";
+              (e.currentTarget as HTMLButtonElement).style.color = "var(--text-tertiary)";
+            }}
+          >
+            <X style={{ width: 13, height: 13 }} strokeWidth={1.5} />
           </button>
         </div>
-        <div className="p-1.5 min-h-[70px]">
-          {results.length > 0 ? (
-            results.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => { onSelect(item.id); onClose(); }}
-                className="w-full flex items-center gap-3 px-3 py-2 rounded-[6px] text-left hover:bg-white/[0.04] transition-colors"
+
+        {/* Results */}
+        <div className="p-2 max-h-[300px] overflow-y-auto scrollbar-hide">
+          {!query && (
+            <p
+              className="px-3 py-1.5 text-[10px] font-semibold tracking-[0.08em] uppercase"
+              style={{ color: "var(--text-tertiary)" }}
+            >
+              Quick access
+            </p>
+          )}
+
+          {results.length > 0 ? results.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => { onSelect(item.id); onClose(); }}
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-[7px] text-left transition-colors"
+              style={{ color: "var(--text-secondary)" }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.background = "var(--item-hover)";
+                (e.currentTarget as HTMLButtonElement).style.color = "var(--text-primary)";
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.background = "";
+                (e.currentTarget as HTMLButtonElement).style.color = "var(--text-secondary)";
+              }}
+            >
+              <div
+                className="w-6 h-6 rounded-[6px] flex items-center justify-center shrink-0"
+                style={{ background: "var(--bg-subtle)", border: "1px solid var(--border)" }}
               >
-                <item.icon className="w-3.5 h-3.5 text-white/25 shrink-0" strokeWidth={1.5} />
-                <span className="text-[12.5px] text-white/60">{item.title}</span>
-              </button>
-            ))
-          ) : (
-            <div className="py-5 flex flex-col items-center justify-center">
-              <Command className="w-4 h-4 text-white/15 mb-1.5" strokeWidth={1.5} />
-              <p className="text-[11px] text-white/20">{query ? "No results" : "Type to search..."}</p>
+                <item.icon style={{ width: 13, height: 13, color: "var(--text-tertiary)" }} strokeWidth={1.5} />
+              </div>
+              <span className="text-[13px]">{item.label}</span>
+              {item.shortcut && (
+                <kbd
+                  className="ml-auto text-[9px] font-mono px-1.5 py-0.5 rounded-[4px]"
+                  style={{
+                    color: "var(--text-tertiary)",
+                    background: "var(--bg-subtle)",
+                    border: "1px solid var(--border)",
+                  }}
+                >
+                  {item.shortcut}
+                </kbd>
+              )}
+            </button>
+          )) : (
+            <div className="py-8 flex flex-col items-center gap-2">
+              <Command style={{ width: 18, height: 18, color: "var(--text-tertiary)" }} strokeWidth={1.5} />
+              <p className="text-[12px]" style={{ color: "var(--text-tertiary)" }}>
+                No results for &ldquo;{query}&rdquo;
+              </p>
             </div>
           )}
+        </div>
+
+        {/* Footer hints */}
+        <div
+          className="px-4 py-2 flex items-center gap-4"
+          style={{ borderTop: "1px solid var(--border)" }}
+        >
+          {["↑↓ navigate", "↵ open", "esc close"].map((hint) => (
+            <span key={hint} className="text-[10px] font-mono" style={{ color: "var(--text-tertiary)" }}>
+              {hint}
+            </span>
+          ))}
         </div>
       </div>
     </div>

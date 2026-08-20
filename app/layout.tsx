@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
+import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { Web3Provider } from "@/components/providers/Web3Provider";
 import "./globals.css";
 
@@ -18,28 +19,20 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Custos — Liquidation Risk Automation",
   description:
-    "Custos monitors your Health Factor 24/7 and executes automatic remediation before liquidation strikes. Non-custodial. No capital required.",
-  openGraph: {
-    title: "Custos — Liquidation Risk Automation",
-    description:
-      "Automated DeFi position protection for Aave V3 and Morpho. Never get liquidated while you sleep.",
-    type: "website",
-  },
+    "Custos monitors your Health Factor 24/7 and executes automatic remediation before liquidation strikes.",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${inter.variable} ${jetbrainsMono.variable} antialiased`}
+      className={`${inter.variable} ${jetbrainsMono.variable}`}
     >
-      <body className="min-h-full bg-[#080808] text-white">
-        <Web3Provider>{children}</Web3Provider>
+      <body>
+        <ThemeProvider>
+          <Web3Provider>{children}</Web3Provider>
+        </ThemeProvider>
       </body>
     </html>
   );

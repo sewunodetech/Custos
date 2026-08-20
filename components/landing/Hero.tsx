@@ -31,6 +31,26 @@ export function Hero() {
         }}
       />
 
+      {/* Teal accent glow — brand color wash */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        aria-hidden="true"
+        style={{
+          background:
+            "radial-gradient(ellipse 55% 40% at 20% 60%, rgba(45,212,191,0.07) 0%, transparent 70%)",
+        }}
+      />
+
+      {/* Amber accent glow — secondary, right side */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        aria-hidden="true"
+        style={{
+          background:
+            "radial-gradient(ellipse 40% 30% at 85% 40%, rgba(251,191,36,0.05) 0%, transparent 70%)",
+        }}
+      />
+
       {/* Bottom fade into next section */}
       <div
         className="absolute bottom-0 left-0 right-0 h-32 pointer-events-none"

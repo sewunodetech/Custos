@@ -1,47 +1,195 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (&:is([data-theme="dark"] *));
 
+/* ══════════════════════════════════════════════════════════════════════════
+   DESIGN TOKENS
+   Named semantically — no opacity fractions on base colors.
+   next-themes sets [data-theme="dark"|"light"] on <html>.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── DARK ──────────────────────────────────────────────────────────────── */
+:root,
+[data-theme="dark"] {
+  /* Surfaces */
+  --bg:              #0a0a0c;
+  --bg-subtle:       #101013;
+  --bg-elevated:     #16161a;
+  --bg-overlay:      #1c1c21;
+  --bg-hover:        #1e1e23;
+
+  /* Borders */
+  --border:          #242428;
+  --border-strong:   #313136;
+  --border-focus:    #52525b;
+
+  /* Foreground text */
+  --text-primary:    #f0f0f2;
+  --text-secondary:  #8b8b96;
+  --text-tertiary:   #56565f;
+  --text-placeholder:#42424b;
+  --text-disabled:   #35353d;
+
+  /* Interactive states */
+  --item-hover:      #1e1e23;
+  --item-active-bg:  #252529;
+  --item-active-text:#f0f0f2;
+
+  /* Accent (CTA buttons) */
+  --accent-bg:       #f0f0f2;
+  --accent-text:     #0a0a0c;
+  --accent-hover:    #dcdce0;
+
+  /* Sidebar specific */
+  --sidebar-bg:      #0d0d10;
+  --sidebar-border:  #1e1e23;
+
+  /* Topbar specific */
+  --topbar-bg:       #0d0d10;
+  --topbar-border:   #1e1e23;
+
+  /* Brand */
+  --brand:           #2dd4bf;   /* teal-400 — primary accent */
+  --brand-dim:       #0d9488;   /* teal-600 — dimmed / borders */
+  --brand-bg:        #042f2e;   /* teal dark surface */
+  --brand-glow:      rgba(45,212,191,0.15);
+
+  --accent2:         #fbbf24;   /* amber-400 — secondary accent */
+  --accent2-dim:     #92400e;
+  --accent2-bg:      #1c1000;
+
+  /* Status */
+  --safe:            #34d399;
+  --safe-bg:         #052e16;
+  --safe-border:     #065f46;
+  --warning:         #fbbf24;
+  --warning-bg:      #1c1403;
+  --warning-border:  #713f12;
+  --danger:          #f87171;
+  --danger-bg:       #1c0606;
+  --danger-border:   #7f1d1d;
+
+  color-scheme: dark;
+}
+
+/* ── LIGHT ─────────────────────────────────────────────────────────────── */
+[data-theme="light"] {
+  /* Surfaces */
+  --bg:              #f7f7f8;
+  --bg-subtle:       #ededef;
+  --bg-elevated:     #ffffff;
+  --bg-overlay:      #ffffff;
+  --bg-hover:        #f0f0f2;
+
+  /* Borders */
+  --border:          #e4e4e7;
+  --border-strong:   #d1d1d6;
+  --border-focus:    #a1a1aa;
+
+  /* Foreground text */
+  --text-primary:    #18181b;
+  --text-secondary:  #52525b;
+  --text-tertiary:   #a1a1aa;
+  --text-placeholder:#c4c4cc;
+  --text-disabled:   #d4d4d8;
+
+  /* Interactive states */
+  --item-hover:      #f0f0f2;
+  --item-active-bg:  #e8e8ec;
+  --item-active-text:#18181b;
+
+  /* Accent */
+  --accent-bg:       #18181b;
+  --accent-text:     #ffffff;
+  --accent-hover:    #27272a;
+
+  /* Sidebar specific */
+  --sidebar-bg:      #ffffff;
+  --sidebar-border:  #e4e4e7;
+
+  /* Topbar specific */
+  --topbar-bg:       #ffffff;
+  --topbar-border:   #e4e4e7;
+
+  /* Brand */
+  --brand:           #0d9488;
+  --brand-dim:       #0f766e;
+  --brand-bg:        #f0fdfa;
+  --brand-glow:      rgba(13,148,136,0.12);
+
+  --accent2:         #d97706;
+  --accent2-dim:     #92400e;
+  --accent2-bg:      #fffbeb;
+
+  /* Status */
+  --safe:            #059669;
+  --safe-bg:         #ecfdf5;
+  --safe-border:     #a7f3d0;
+  --warning:         #d97706;
+  --warning-bg:      #fffbeb;
+  --warning-border:  #fde68a;
+  --danger:          #dc2626;
+  --danger-bg:       #fef2f2;
+  --danger-border:   #fecaca;
+
+  color-scheme: light;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   TAILWIND THEME
+   ══════════════════════════════════════════════════════════════════════════ */
 @theme inline {
-  --color-background: #050505;
-  --color-foreground: #ffffff;
-  --color-surface: #18181b;
-  --color-border: #27272a;
-  --color-text-primary: #ffffff;
-  --color-text-secondary: #a1a1aa;
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   BASE
+   ══════════════════════════════════════════════════════════════════════════ */
 @layer base {
-  * {
-    box-sizing: border-box;
-  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; }
+
+  html { scroll-behavior: smooth; }
+
   body {
-    background: #050505;
-    color: #ffffff;
+    background-color: var(--bg);
+    color: var(--text-primary);
     font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    transition: background-color 0.15s ease, color 0.15s ease;
   }
+
+  .scrollbar-hide               { scrollbar-width: none; -ms-overflow-style: none; }
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   UTILITIES
+   ══════════════════════════════════════════════════════════════════════════ */
 @layer utilities {
-  /* HF live-dot pulse — still used in non-motion contexts */
+  .tabular-nums { font-variant-numeric: tabular-nums; }
+
   @keyframes hf-pulse {
     0%, 100% { opacity: 1; }
     50%       { opacity: 0.25; }
   }
-  .animate-hf-pulse {
-    animation: hf-pulse 1.6s ease-in-out infinite;
-  }
+  .animate-hf-pulse { animation: hf-pulse 1.6s ease-in-out infinite; }
 
-  /* Tabular number rendering for HF display */
-  .tabular-nums {
-    font-variant-numeric: tabular-nums;
+  @keyframes cursor-blink {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0; }
   }
+  .animate-cursor { animation: cursor-blink 1s step-end infinite; }
 
-  /* Smooth scroll */
-  html {
-    scroll-behavior: smooth;
+  @keyframes shimmer {
+    0%   { background-position: -200% 0; }
+    100% { background-position:  200% 0; }
+  }
+  .animate-shimmer {
+    background: linear-gradient(90deg, var(--bg-subtle) 25%, var(--bg-elevated) 50%, var(--bg-subtle) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.6s infinite;
   }
 }

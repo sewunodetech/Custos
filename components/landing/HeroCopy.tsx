@@ -26,7 +26,17 @@ export function HeroCopy() {
         transition={{ duration: 0.7, delay: 0.1, ease: EASE }}
       >
         <span className="text-white block">Your positions.</span>
-        <span className="text-white block">Protected while</span>
+        <span
+          className="block"
+          style={{
+            background: "linear-gradient(90deg, #ffffff 0%, #2dd4bf 100%)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            backgroundClip: "text",
+          }}
+        >
+          Protected while
+        </span>
         <span className="block" style={{ overflow: "visible" }}>
           <span className="text-white/35">you </span>
           {reduce ? (
@@ -69,7 +79,11 @@ export function HeroCopy() {
           <>
             <Link
               href="/connect"
-              className="inline-flex items-center justify-center h-10 px-6 rounded-[6px] bg-white text-[#080808] text-[13px] font-semibold tracking-[-0.01em] select-none hover:bg-white/90 transition-colors"
+              className="inline-flex items-center justify-center h-10 px-6 rounded-[6px] text-[13px] font-semibold tracking-[-0.01em] select-none transition-colors"
+              style={{
+                background: "linear-gradient(135deg, #2dd4bf 0%, #0d9488 100%)",
+                color: "#042f2e",
+              }}
             >
               Launch app
             </Link>

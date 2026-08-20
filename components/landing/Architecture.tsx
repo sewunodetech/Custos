@@ -5,6 +5,7 @@ const layers = [
     sub: "Protocol Adapters",
     desc: "Reads positions and prices from the same oracle sources as the target protocols. No divergence risk.",
     color: "border-l-white/20",
+    dotColor: "#2dd4bf",   /* teal — data ingestion */
   },
   {
     label: "Layer 2 - Policy",
@@ -12,6 +13,7 @@ const layers = [
     sub: "Deterministic intent",
     desc: "Evaluates Health Factor against your threshold. Outputs a structured Intent object: action, amount, asset, funding source.",
     color: "border-l-white/20",
+    dotColor: "#818cf8",   /* indigo — logic/brain */
   },
   {
     label: "Layer 3 - Trigger",
@@ -19,6 +21,7 @@ const layers = [
     sub: "Chainlink Automation in production",
     desc: "Decentralized trigger layer. No single point of failure. During development, runs on a cron + viem loop.",
     color: "border-l-white/20",
+    dotColor: "#fbbf24",   /* amber — trigger/alert */
   },
   {
     label: "Layer 4 - Execution",
@@ -26,6 +29,7 @@ const layers = [
     sub: "Strict allowlist",
     desc: "Can only call Aave.repay(), supply(), Morpho.repay(), or whitelisted swap routers. Cannot transfer funds out.",
     color: "border-l-white/20",
+    dotColor: "#34d399",   /* green — safe execution */
   },
 ];
 
@@ -68,6 +72,7 @@ function LayerRow({
   title,
   sub,
   desc,
+  dotColor,
   index,
   total,
 }: {
@@ -76,6 +81,7 @@ function LayerRow({
   sub: string;
   desc: string;
   color: string;
+  dotColor: string;
   index: number;
   total: number;
 }) {
@@ -85,8 +91,11 @@ function LayerRow({
       <div className="flex flex-col items-center gap-1 pt-0.5">
         <div className="w-px flex-1 bg-[#27272a]" />
         <div
-          className="w-2 h-2 rounded-full border border-[#a1a1aa] shrink-0"
-          style={{ opacity: 0.4 + index * 0.2 }}
+          className="w-2.5 h-2.5 rounded-full shrink-0"
+          style={{
+            backgroundColor: dotColor,
+            boxShadow: `0 0 8px ${dotColor}88`,
+          }}
         />
         {index < total - 1 && (
           <div className="w-px flex-1 bg-[#27272a]" />
@@ -95,7 +104,10 @@ function LayerRow({
 
       {/* Right: content */}
       <div className="flex-1 min-w-0">
-        <p className="font-mono text-[10px] tracking-[0.14em] text-[#71717a] uppercase mb-1">
+        <p
+          className="font-mono text-[10px] tracking-[0.14em] uppercase mb-1"
+          style={{ color: dotColor + "bb" }}
+        >
           {label}
         </p>
         <div className="flex flex-wrap items-baseline gap-2 mb-1.5">
