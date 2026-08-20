@@ -1,0 +1,47 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: #050505;
+  --color-foreground: #ffffff;
+  --color-surface: #18181b;
+  --color-border: #27272a;
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #a1a1aa;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    background: #050505;
+    color: #ffffff;
+    font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  }
+}
+
+@layer utilities {
+  /* HF live-dot pulse — still used in non-motion contexts */
+  @keyframes hf-pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.25; }
+  }
+  .animate-hf-pulse {
+    animation: hf-pulse 1.6s ease-in-out infinite;
+  }
+
+  /* Tabular number rendering for HF display */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Smooth scroll */
+  html {
+    scroll-behavior: smooth;
+  }
+}
