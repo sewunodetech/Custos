@@ -1,3 +1,12 @@
+const TAG_STYLES: Record<string, { color: string; bg: string; border: string }> = {
+  Security:            { color: "#2dd4bf", bg: "rgba(45,212,191,0.08)", border: "rgba(45,212,191,0.18)" },
+  "Capital efficiency":{ color: "#fbbf24", bg: "rgba(251,191,36,0.08)", border: "rgba(251,191,36,0.18)" },
+  Reliability:         { color: "#818cf8", bg: "rgba(129,140,248,0.08)", border: "rgba(129,140,248,0.18)" },
+  "Multi-protocol":    { color: "#34d399", bg: "rgba(52,211,153,0.08)", border: "rgba(52,211,153,0.18)" },
+  Transparency:        { color: "#94a3b8", bg: "rgba(148,163,184,0.08)", border: "rgba(148,163,184,0.15)" },
+  Infrastructure:      { color: "#f97316", bg: "rgba(249,115,22,0.08)", border: "rgba(249,115,22,0.18)" },
+};
+
 const features = [
   {
     title: "Non-custodial by design",
@@ -78,12 +87,21 @@ function FeatureCard({
   wide?: boolean;
   className?: string;
 }) {
+  const tagStyle = TAG_STYLES[tag] ?? { color: "#71717a", bg: "transparent", border: "transparent" };
+
   return (
     <div
       className={`bg-[#050505] p-8 md:p-10 flex flex-col gap-8 group hover:bg-[#18181b]/50 transition-colors duration-200 ${className}`}
     >
       {/* Tag */}
-      <span className="font-mono text-[11px] tracking-[0.14em] text-[#71717a] uppercase self-start">
+      <span
+        className="font-mono text-[11px] tracking-[0.14em] uppercase self-start px-2 py-0.5 rounded-[4px]"
+        style={{
+          color: tagStyle.color,
+          background: tagStyle.bg,
+          border: `1px solid ${tagStyle.border}`,
+        }}
+      >
         {tag}
       </span>
 

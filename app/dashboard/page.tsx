@@ -42,15 +42,27 @@ function ChartTooltip({ active, payload, label }: any) {
 }
 
 // ── stat card ─────────────────────────────────────────────────────────────
-function StatCard({ label, value, sub, icon: Icon }: {
-  label: string; value: string; sub?: string; icon: React.ElementType;
+const STAT_COLORS = [
+  { icon: "#2dd4bf", bg: "rgba(45,212,191,0.08)", border: "rgba(45,212,191,0.15)" },   // collateral — teal
+  { icon: "#f87171", bg: "rgba(248,113,113,0.08)", border: "rgba(248,113,113,0.15)" }, // debt — red
+  { icon: "#818cf8", bg: "rgba(129,140,248,0.08)", border: "rgba(129,140,248,0.15)" }, // protected — indigo
+  { icon: "#fbbf24", bg: "rgba(251,191,36,0.08)", border: "rgba(251,191,36,0.15)" },   // wallet — amber
+];
+
+function StatCard({ label, value, sub, icon: Icon, colorIndex = 0 }: {
+  label: string; value: string; sub?: string; icon: React.ElementType; colorIndex?: number;
 }) {
+  const colors = STAT_COLORS[colorIndex] ?? STAT_COLORS[0];
+
   return (
     <div className="rounded-[10px] border border-white/[0.06] bg-white/[0.015] p-4 flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <span className="text-[10px] font-mono text-white/25 tracking-[0.1em] uppercase">{label}</span>
-        <div className="w-6 h-6 rounded-[5px] bg-white/[0.04] flex items-center justify-center">
-          <Icon className="w-3 h-3 text-white/30" strokeWidth={1.5} />
+        <div
+          className="w-6 h-6 rounded-[5px] flex items-center justify-center"
+          style={{ background: colors.bg, border: `1px solid ${colors.border}` }}
+        >
+          <Icon className="w-3 h-3" style={{ color: colors.icon }} strokeWidth={1.5} />
         </div>
       </div>
       <div>
@@ -135,14 +147,15 @@ export default function DashboardPage() {
 
       {/* ── Stats ──────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
-        <StatCard label="Total collateral" value={`$${totalCollateral.toLocaleString()}`} sub="Across all positions" icon={ShieldCheck} />
-        <StatCard label="Total debt"       value={`$${totalDebt.toLocaleString()}`}       sub="Active borrows"       icon={TrendingDown} />
-        <StatCard label="Protected"        value={String(POSITIONS.length)}                sub="Active positions"     icon={Activity} />
+        <StatCard label="Total collateral" value={`$${totalCollateral.toLocaleString()}`} sub="Across all positions" icon={ShieldCheck} colorIndex={0} />
+        <StatCard label="Total debt"       value={`$${totalDebt.toLocaleString()}`}       sub="Active borrows"       icon={TrendingDown} colorIndex={1} />
+        <StatCard label="Protected"        value={String(POSITIONS.length)}                sub="Active positions"     icon={Activity} colorIndex={2} />
         <StatCard
           label="Wallet balance"
           value={balance ? `${parseFloat(formatEther(balance.value)).toFixed(4)} ${balance.symbol}` : "—"}
           sub={chain?.name}
           icon={Zap}
+          colorIndex={3}
         />
       </div>
 
@@ -153,7 +166,14 @@ export default function DashboardPage() {
         <div className="space-y-5">
 
           {/* HF Trend chart */}
-          <div className="rounded-[10px] border border-white/[0.06] bg-white/[0.015] p-5">
+          <div
+            className="rounded-[10px] p-5"
+            style={{
+              background: "rgba(255,255,255,0.015)",
+              border: "1px solid rgba(45,212,191,0.15)",
+              boxShadow: "0 0 0 1px rgba(45,212,191,0.05), inset 0 1px 0 rgba(45,212,191,0.05)",
+            }}
+          >
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-[13px] font-medium text-white/80">Health Factor — 24h</h2>

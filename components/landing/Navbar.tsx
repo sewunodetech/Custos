@@ -14,10 +14,21 @@ export function Navbar() {
       <nav className="relative max-w-[1400px] mx-auto px-6 h-full flex items-center justify-between">
         {/* Logo */}
         <div className="flex items-center gap-3">
-          <svg width="20" height="20" viewBox="0 0 22 22" fill="none" aria-hidden="true">
-            <path d="M11 2L3 5.5V10.5C3 14.72 6.42 18.66 11 20C15.58 18.66 19 14.72 19 10.5V5.5L11 2Z" stroke="white" strokeWidth="1.5" strokeLinejoin="round" />
-            <path d="M8 11L10.5 13.5L14.5 9" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+          {/* Shield icon with teal glow */}
+          <div className="relative flex items-center justify-center">
+            <div
+              className="absolute inset-0 rounded-full pointer-events-none"
+              style={{
+                background: "radial-gradient(circle, rgba(45,212,191,0.25) 0%, transparent 70%)",
+                filter: "blur(6px)",
+              }}
+              aria-hidden="true"
+            />
+            <svg width="20" height="20" viewBox="0 0 22 22" fill="none" aria-hidden="true" className="relative">
+              <path d="M11 2L3 5.5V10.5C3 14.72 6.42 18.66 11 20C15.58 18.66 19 14.72 19 10.5V5.5L11 2Z" stroke="#2dd4bf" strokeWidth="1.5" strokeLinejoin="round" />
+              <path d="M8 11L10.5 13.5L14.5 9" stroke="#2dd4bf" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
           <span className="text-white text-[14px] font-semibold tracking-[-0.01em]">Custos</span>
         </div>
 
