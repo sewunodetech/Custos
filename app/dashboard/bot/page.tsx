@@ -1,14 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAccount } from "wagmi";
 import {
-  Bot, Check, Copy, ExternalLink, Bell, AlertTriangle,
+  Bot, Check, CheckCheck, Copy, ExternalLink, Bell, AlertTriangle,
   ShieldCheck, Zap, CheckCircle, ToggleLeft, ToggleRight,
-  RefreshCw, Unlink, MessageSquare,
+  RefreshCw, Unlink, MessageSquare, Link2, Send, Loader2,
 } from "lucide-react";
+import { useTelegramLink } from "@/hooks/useTelegramLink";
 
-/* ── Types ──────────────────────────────────────────────────────────────── */
 type ConnectionStatus = "disconnected" | "pending" | "connected";
 
 type NotificationPref = {
@@ -20,7 +20,6 @@ type NotificationPref = {
   color: string;
 };
 
-/* ── Step indicator ─────────────────────────────────────────────────────── */
 function Step({ n, title, done, active }: {
   n: number; title: string; done: boolean; active: boolean;
 }) {
@@ -54,7 +53,6 @@ function Step({ n, title, done, active }: {
   );
 }
 
-/* ── Notification toggle row ─────────────────────────────────────────────── */
 function NotifRow({
   pref, onChange,
 }: {
@@ -93,15 +91,22 @@ function NotifRow({
   );
 }
 
-/* ── Page ────────────────────────────────────────────────────────────────── */
 export default function BotPage() {
   const { address } = useAccount();
-  const [status, setStatus]   = useState<ConnectionStatus>("disconnected");
-  const [copied, setCopied]   = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState<ConnectionStatus>("disconnected");
+  const [copied, setCopied] = useState(false);
+  const [linkCodeCopied, setLinkCodeCopied] = useState(false);
 
-  const token    = address ? `cst_${address.slice(2, 10).toLowerCase()}` : "cst_connect_wallet";
-  const deepLink = `https://t.me/CustosGuardBot?start=${token}`;
+  const { linkCode, status: linkStatus, error: linkError, generateCode, reset: resetLink } = useTelegramLink();
+
+  const deepLink = linkCode ? `https://t.me/cuustos_bot?start=${linkCode}` : "";
+  const steps = linkCode ? 2 : 1;
+
+  useEffect(() => {
+    if (linkStatus === "loading") {
+      setStatus("pending");
+    }
+  }, [linkStatus]);
 
   const [prefs, setPrefs] = useState<NotificationPref[]>([
     {
@@ -140,18 +145,24 @@ export default function BotPage() {
     setPrefs((prev) => prev.map((p) => (p.id === id ? { ...p, enabled: v } : p)));
 
   const handleCopy = () => {
+    if (!deepLink) return;
     navigator.clipboard.writeText(deepLink);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleConnect = () => {
-    setLoading(true);
-    window.open(deepLink, "_blank");
-    setTimeout(() => { setStatus("connected"); setLoading(false); }, 3000);
+  const handleCopyLink = () => {
+    if (!deepLink) return;
+    navigator.clipboard.writeText(deepLink);
+    setLinkCodeCopied(true);
+    setTimeout(() => setLinkCodeCopied(false), 2000);
   };
 
-  const handleDisconnect = () => setStatus("disconnected");
+  const handleDisconnect = () => {
+    resetLink();
+    setStatus("disconnected");
+  };
+
   const isConnected = status === "connected";
   const enabledCount = prefs.filter((p) => p.enabled).length;
 
@@ -162,7 +173,7 @@ export default function BotPage() {
       <div>
         <h1 className="text-[18px] font-semibold text-white tracking-[-0.02em]">Telegram Bot</h1>
         <p className="text-[12px] text-white/30 mt-0.5">
-          Connect @CustosGuardBot for real-time alerts and AI-powered position queries.
+          Connect @cuustos_bot for real-time alerts and AI-powered position queries.
         </p>
       </div>
 
@@ -182,7 +193,6 @@ export default function BotPage() {
                 : "1px solid rgba(255,255,255,0.06)",
             }}
           >
-            {/* Status header */}
             <div
               className="flex items-center justify-between px-5 py-4"
               style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}
@@ -201,7 +211,7 @@ export default function BotPage() {
                   />
                 </div>
                 <div>
-                  <p className="text-[13px] font-medium text-white/80">@CustosGuardBot</p>
+                  <p className="text-[13px] font-medium text-white/80">@cuustos_bot</p>
                   <p className="text-[11px] text-white/30">
                     {isConnected ? "Connected · notifications active" : "Not connected"}
                   </p>
@@ -260,7 +270,7 @@ export default function BotPage() {
                     ))}
                   </div>
                   <button
-                    onClick={() => window.open("https://t.me/CustosGuardBot", "_blank")}
+                    onClick={() => window.open("https://t.me/cuustos_bot", "_blank")}
                     className="inline-flex items-center gap-2 h-9 px-4 rounded-[7px] text-[12.5px] transition-colors w-fit"
                     style={{ border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.4)" }}
                     onMouseEnter={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.8)"; e.currentTarget.style.background = "rgba(255,255,255,0.04)"; }}
@@ -274,61 +284,138 @@ export default function BotPage() {
                 <div className="flex flex-col gap-5">
                   {/* Steps */}
                   <div className="flex flex-col gap-3">
-                    <Step n={1} title="Open @CustosGuardBot in Telegram" done={false} active={true} />
-                    <Step n={2} title="Send your unique link or start command" done={false} active={false} />
-                    <Step n={3} title="Bot confirms your wallet address" done={false} active={false} />
+                    <Step n={1} title="Generate a one-time link code" done={false} active={!linkCode} />
+                    <Step n={2} title={`Send /start ${linkCode || "______"} to @cuustos_bot`} done={false} active={!!linkCode} />
+                    <Step n={3} title="Bot confirms and links your account" done={false} active={false} />
                   </div>
 
-                  {/* Deep link */}
-                  <div
-                    className="flex items-center gap-2 p-3 rounded-[8px]"
-                    style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}
-                  >
-                    <span className="flex-1 font-mono text-[11px] text-white/35 truncate">{deepLink}</span>
-                    <button
-                      onClick={handleCopy}
-                      className="shrink-0 p-1.5 rounded-[5px] transition-colors"
-                      style={{ color: "rgba(255,255,255,0.25)" }}
-                      onMouseEnter={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.7)"; e.currentTarget.style.background = "rgba(255,255,255,0.06)"; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.25)"; e.currentTarget.style.background = ""; }}
-                    >
-                      {copied
-                        ? <Check style={{ width: 13, height: 13, color: "#34d399" }} strokeWidth={2} />
-                        : <Copy  style={{ width: 13, height: 13 }} strokeWidth={1.5} />
-                      }
-                    </button>
-                  </div>
+                  {!linkCode ? (
+                    /* Generate code button */
+                    <div className="flex flex-col gap-3">
+                      {!address ? (
+                        <p className="text-[11px] text-white/20">Connect your wallet first to generate a link code.</p>
+                      ) : (
+                        <>
+                          <button
+                            onClick={generateCode}
+                            disabled={linkStatus === "loading"}
+                            className="inline-flex items-center gap-2 h-9 px-5 rounded-[8px] text-[13px] font-semibold transition-opacity disabled:opacity-40 w-fit"
+                            style={{
+                              background: "linear-gradient(135deg, #2dd4bf 0%, #0d9488 100%)",
+                              color: "#042f2e",
+                            }}
+                          >
+                            {linkStatus === "loading" ? (
+                              <><Loader2 style={{ width: 13, height: 13 }} className="animate-spin" strokeWidth={2} />Generating...</>
+                            ) : (
+                              <><Link2 style={{ width: 13, height: 13 }} strokeWidth={2} />Generate link code</>
+                            )}
+                          </button>
+                          <p className="text-[11px] text-white/20">
+                            Code expires in 10 minutes. Send it to @cuustos_bot on Telegram to complete linking.
+                          </p>
+                        </>
+                      )}
+                      {linkError && (
+                        <div
+                          className="flex items-start gap-2 px-3 py-2 rounded-[6px]"
+                          style={{ background: "rgba(248,113,113,0.07)", border: "1px solid rgba(248,113,113,0.15)" }}
+                        >
+                          <AlertTriangle className="w-3 h-3 shrink-0 mt-0.5" style={{ color: "rgba(248,113,113,0.7)" }} strokeWidth={1.5} />
+                          <p className="text-[11px]" style={{ color: "rgba(248,113,113,0.7)" }}>{linkError}</p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    /* Code generated — show deep link */
+                    <div className="flex flex-col gap-4">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="flex-1 flex items-center gap-2 h-10 px-3.5 rounded-[7px]"
+                          style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}
+                        >
+                          <span className="font-mono text-[14px] text-white/70 tracking-[0.2em] select-all">{linkCode}</span>
+                        </div>
+                        <button
+                          onClick={handleCopyLink}
+                          className="flex items-center gap-1.5 h-10 px-3.5 rounded-[7px] text-[12px] transition-colors shrink-0"
+                          style={{
+                            background: "rgba(255,255,255,0.06)",
+                            border: "1px solid rgba(255,255,255,0.08)",
+                            color: "rgba(255,255,255,0.5)",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = "rgba(255,255,255,0.1)";
+                            e.currentTarget.style.color = "rgba(255,255,255,0.7)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = "rgba(255,255,255,0.06)";
+                            e.currentTarget.style.color = "rgba(255,255,255,0.5)";
+                          }}
+                        >
+                          {linkCodeCopied ? (
+                            <><CheckCheck className="w-3.5 h-3.5" style={{ color: "#34d399" }} strokeWidth={2} />Copied</>
+                          ) : (
+                            <><Copy className="w-3.5 h-3.5" strokeWidth={1.5} />Copy link</>
+                          )}
+                        </button>
+                      </div>
 
-                  {/* CTAs */}
-                  <div className="flex items-center gap-2.5">
-                    <button
-                      onClick={handleConnect}
-                      disabled={loading || !address}
-                      className="inline-flex items-center gap-2 h-9 px-5 rounded-[8px] text-[13px] font-semibold transition-opacity disabled:opacity-40"
-                      style={{
-                        background: "linear-gradient(135deg, #2dd4bf 0%, #0d9488 100%)",
-                        color: "#042f2e",
-                      }}
-                    >
-                      {loading && <RefreshCw style={{ width: 13, height: 13 }} className="animate-spin" strokeWidth={2} />}
-                      {loading ? "Waiting for confirmation…" : "Open Telegram"}
-                    </button>
-                    <a
-                      href="https://t.me/CustosGuardBot"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1.5 h-9 px-4 rounded-[8px] text-[12.5px] transition-colors"
-                      style={{ border: "1px solid rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.35)" }}
-                      onMouseEnter={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.7)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.18)"; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.35)"; e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; }}
-                    >
-                      <ExternalLink style={{ width: 13, height: 13 }} strokeWidth={1.5} />
-                      View bot
-                    </a>
-                  </div>
+                      <div
+                        className="flex items-start gap-2.5 px-3 py-2.5 rounded-[7px]"
+                        style={{ background: "rgba(45,212,191,0.06)", border: "1px solid rgba(45,212,191,0.15)" }}
+                      >
+                        <Send className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: "rgba(45,212,191,0.6)" }} strokeWidth={1.5} />
+                        <div>
+                          <p className="text-[11px] leading-relaxed" style={{ color: "rgba(45,212,191,0.7)" }}>
+                            Send this link to @cuustos_bot to complete linking.{" "}
+                            <a
+                              href={deepLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-0.5 underline underline-offset-2 hover:no-underline"
+                              style={{ color: "rgba(45,212,191,0.9)" }}
+                            >
+                              Open in Telegram <ExternalLink className="w-2.5 h-2.5" strokeWidth={1.5} />
+                            </a>
+                          </p>
+                        </div>
+                      </div>
 
-                  {!address && (
-                    <p className="text-[11px] text-white/20">Connect your wallet first to generate a unique link.</p>
+                      <div className="flex items-center gap-2.5">
+                        <button
+                          onClick={handleCopy}
+                          className="inline-flex items-center gap-1.5 h-8 px-3 rounded-[6px] text-[12px] transition-colors"
+                          style={{
+                            border: "1px solid rgba(255,255,255,0.08)",
+                            color: "rgba(255,255,255,0.5)",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = "rgba(255,255,255,0.06)";
+                            e.currentTarget.style.color = "rgba(255,255,255,0.7)";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = "";
+                            e.currentTarget.style.color = "rgba(255,255,255,0.5)";
+                          }}
+                        >
+                          {copied ? (
+                            <><Check className="w-3 h-3" style={{ color: "#34d399" }} strokeWidth={2} />Copied</>
+                          ) : (
+                            <><Copy className="w-3 h-3" strokeWidth={1.5} />Copy link</>
+                          )}
+                        </button>
+                        <button
+                          onClick={resetLink}
+                          className="text-[11px] transition-colors"
+                          style={{ color: "rgba(255,255,255,0.2)" }}
+                          onMouseEnter={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.4)"; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.color = "rgba(255,255,255,0.2)"; }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
                   )}
                 </div>
               )}
@@ -376,8 +463,8 @@ export default function BotPage() {
                 <MessageSquare style={{ width: 14, height: 14, color: "#2dd4bf" }} strokeWidth={1.5} />
               </div>
               <div>
-                <p className="text-[12px] font-semibold text-white/70">@CustosGuardBot</p>
-                <p className="text-[10px] text-white/25 font-mono">t.me/CustosGuardBot</p>
+                <p className="text-[12px] font-semibold text-white/70">@cuustos_bot</p>
+                <p className="text-[10px] text-white/25 font-mono">t.me/cuustos_bot</p>
               </div>
             </div>
 
@@ -434,6 +521,7 @@ export default function BotPage() {
             </div>
             <div className="p-3 flex flex-col gap-1.5">
               {[
+                { cmd: "/start <code>", desc: "Link your Custos account" },
                 { cmd: "/status",    desc: "All position HFs right now" },
                 { cmd: "/positions", desc: "Active collateral and debt" },
                 { cmd: "/history",   desc: "Last 5 executions with HF delta" },

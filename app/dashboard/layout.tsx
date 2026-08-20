@@ -91,7 +91,7 @@ export default function DashboardLayout({ children: _c }: { children: React.Reac
     setActiveId(id);
   };
 
-  if (!isConnected || !sessionChecked) {
+  if (!isConnected) {
     return (
       <div
         className="min-h-screen flex items-center justify-center"
