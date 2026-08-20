@@ -7,6 +7,7 @@ import {
   Info, Copy, CheckCheck, Zap, TrendingDown, Activity,
   Shield, CheckCircle,
 } from "lucide-react";
+import { useTelegramLink } from "@/hooks/useTelegramLink";
 
 /* ── Primitives ──────────────────────────────────────────────────────────── */
 function SectionCard({ title, description, children }: {
@@ -107,6 +108,9 @@ export default function SettingsPage() {
 
   const [saved,  setSaved]  = useState(false);
   const [copied, setCopied] = useState(false);
+  const [linkCodeCopied, setLinkCodeCopied] = useState(false);
+
+  const { linkCode, status: linkStatus, error: linkError, generateCode, reset: resetLink } = useTelegramLink();
 
   const handleSave = () => {
     setSaved(true);
