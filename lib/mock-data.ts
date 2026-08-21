@@ -163,3 +163,16 @@ export const PORTFOLIO_BREAKDOWN = [
   { name: "ETH (Morpho)", value: 9_520, color: "#94a3b8" },
   { name: "USDC debt", value: 11_600, color: "#334155" },
 ];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Simulation seed factory
+// Returns deep-cloned copies so the simulation engine can mutate freely
+// without affecting the static exports used in non-reactive contexts.
+// ─────────────────────────────────────────────────────────────────────────────
+export function createSimSeed() {
+  return {
+    positions: POSITIONS.map((p) => ({ ...p })),
+    hfTrend:   HF_TREND.map((p)  => ({ ...p })),
+    history:   HISTORY.map((h)   => ({ ...h })),
+  };
+}

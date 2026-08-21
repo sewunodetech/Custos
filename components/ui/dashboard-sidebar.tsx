@@ -40,7 +40,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     heading: "Intelligence",
     items: [
-      { id: "chat", label: "AI Assistant", icon: MessageSquare, badge: "AI" },
+      { id: "chat", label: "AI Assistant", icon: MessageSquare, badge: "Soon" },
       { id: "bot",  label: "Telegram Bot", icon: Bot },
     ],
   },
@@ -54,6 +54,16 @@ const BOTTOM_ITEMS: NavItem[] = [
 /* ══════════════════════════════════════════════════════════════════════════
    NAV ROW
    ══════════════════════════════════════════════════════════════════════════ */
+/* ── Tour target mapping ──────────────────────────────────────────────────── */
+const TOUR_IDS: Record<string, string> = {
+  home:     "tour-nav-home",
+  positions:"tour-nav-positions",
+  history:  "tour-nav-history",
+  chat:     "tour-nav-chat",
+  bot:      "tour-nav-bot",
+  settings: "tour-nav-settings",
+};
+
 function NavRow({
   item, activeId, onSelect, level = 0, collapsed,
 }: {
@@ -80,6 +90,7 @@ function NavRow({
         onClick={handleClick}
         onKeyDown={(e) => e.key === "Enter" && handleClick()}
         title={collapsed ? item.label : undefined}
+        data-tour-id={TOUR_IDS[item.id]}
         className="relative flex items-center w-full rounded-[6px] cursor-pointer select-none outline-none transition-colors duration-100"
         style={{
           gap: collapsed ? 0 : 8,
@@ -237,6 +248,7 @@ export function SidebarNav({
       >
         {collapsed ? (
           <div
+            data-tour-id="tour-logo"
             className="w-7 h-7 rounded-[6px] flex items-center justify-center"
             style={{
               background: "rgba(45,212,191,0.1)",
@@ -246,7 +258,7 @@ export function SidebarNav({
             <ShieldCheck style={{ width: 14, height: 14, color: "#2dd4bf" }} strokeWidth={1.5} />
           </div>
         ) : (
-          <div className="flex items-center gap-2.5">
+          <div data-tour-id="tour-logo" className="flex items-center gap-2.5">
             <div
               className="w-[28px] h-[28px] rounded-[6px] flex items-center justify-center shrink-0"
               style={{

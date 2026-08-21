@@ -10,7 +10,8 @@ import {
   ShieldCheck, AlertTriangle, Activity, TrendingDown,
   Zap, ArrowRight, CheckCircle, Clock,
 } from "lucide-react";
-import { POSITIONS, HISTORY, HF_TREND, PORTFOLIO_BREAKDOWN } from "@/lib/mock-data";
+import { useSimulation } from "@/lib/simulation-context";
+import { PORTFOLIO_BREAKDOWN } from "@/lib/mock-data";
 
 // ── helpers ───────────────────────────────────────────────────────────────
 function hfBarPct(hf: number) {
@@ -43,25 +44,22 @@ function ChartTooltip({ active, payload, label }: any) {
 
 // ── stat card ─────────────────────────────────────────────────────────────
 const STAT_COLORS = [
-  { icon: "#2dd4bf", bg: "rgba(45,212,191,0.08)", border: "rgba(45,212,191,0.15)" },   // collateral — teal
-  { icon: "#f87171", bg: "rgba(248,113,113,0.08)", border: "rgba(248,113,113,0.15)" }, // debt — red
-  { icon: "#818cf8", bg: "rgba(129,140,248,0.08)", border: "rgba(129,140,248,0.15)" }, // protected — indigo
-  { icon: "#fbbf24", bg: "rgba(251,191,36,0.08)", border: "rgba(251,191,36,0.15)" },   // wallet — amber
+  { icon: "#2dd4bf", bg: "rgba(45,212,191,0.08)",  border: "rgba(45,212,191,0.15)"  },
+  { icon: "#f87171", bg: "rgba(248,113,113,0.08)", border: "rgba(248,113,113,0.15)" },
+  { icon: "#818cf8", bg: "rgba(129,140,248,0.08)", border: "rgba(129,140,248,0.15)" },
+  { icon: "#fbbf24", bg: "rgba(251,191,36,0.08)",  border: "rgba(251,191,36,0.15)"  },
 ];
 
 function StatCard({ label, value, sub, icon: Icon, colorIndex = 0 }: {
   label: string; value: string; sub?: string; icon: React.ElementType; colorIndex?: number;
 }) {
   const colors = STAT_COLORS[colorIndex] ?? STAT_COLORS[0];
-
   return (
     <div className="rounded-[10px] border border-white/[0.06] bg-white/[0.015] p-4 flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <span className="text-[10px] font-mono text-white/25 tracking-[0.1em] uppercase">{label}</span>
-        <div
-          className="w-6 h-6 rounded-[5px] flex items-center justify-center"
-          style={{ background: colors.bg, border: `1px solid ${colors.border}` }}
-        >
+        <div className="w-6 h-6 rounded-[5px] flex items-center justify-center"
+          style={{ background: colors.bg, border: `1px solid ${colors.border}` }}>
           <Icon className="w-3 h-3" style={{ color: colors.icon }} strokeWidth={1.5} />
         </div>
       </div>
@@ -74,12 +72,12 @@ function StatCard({ label, value, sub, icon: Icon, colorIndex = 0 }: {
 }
 
 // ── position mini-card ────────────────────────────────────────────────────
-function PositionMini({ pos }: { pos: (typeof POSITIONS)[0] }) {
-  const pct = hfBarPct(pos.hf);
-  const tPct = hfBarPct(pos.triggerAt);
-  const s = pos.status;
+function PositionMini({ pos, triggerHF }: { pos: any; triggerHF: number }) {
+  const pct  = hfBarPct(pos.hf);
+  const tPct = hfBarPct(triggerHF);
+  const s    = pos.status;
   return (
-    <div className={`rounded-[10px] border p-4 ${HF_BG[s]}`}>
+    <div className={`rounded-[10px] border p-4 transition-all duration-700 ${HF_BG[s as keyof typeof HF_BG]}`}>
       <div className="flex items-start justify-between mb-3">
         <div>
           <div className="flex items-center gap-2 mb-0.5">
@@ -88,20 +86,23 @@ function PositionMini({ pos }: { pos: (typeof POSITIONS)[0] }) {
           </div>
           <p className="text-[11px] text-white/30">{pos.collateral} · {pos.debt}</p>
         </div>
-        <span className={`text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded-[4px] border ${HF_BG[s]} ${HF_TEXT[s]}`}>
-          {HF_LABEL[s]}
+        <span className={`text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded-[4px] border ${HF_BG[s as keyof typeof HF_BG]} ${HF_TEXT[s as keyof typeof HF_TEXT]}`}>
+          {HF_LABEL[s as keyof typeof HF_LABEL]}
         </span>
       </div>
       <div className="flex items-baseline gap-1.5 mb-2">
-        <span className={`text-[28px] font-semibold leading-none tracking-[-0.03em] tabular-nums ${HF_TEXT[s]}`}>
+        <span className={`text-[28px] font-semibold leading-none tracking-[-0.03em] tabular-nums transition-all duration-700 ${HF_TEXT[s as keyof typeof HF_TEXT]}`}>
           {pos.hf.toFixed(2)}
         </span>
         <span className="text-[10px] text-white/20 font-mono">HF</span>
       </div>
       <div className="relative h-0.5 rounded-full bg-white/[0.06] overflow-hidden">
-        <div className={`absolute left-0 top-0 h-full rounded-full ${
-          s === "safe" ? "bg-emerald-400" : s === "warning" ? "bg-yellow-400" : "bg-red-400"
-        }`} style={{ width: `${pct}%` }} />
+        <div
+          className={`absolute left-0 top-0 h-full rounded-full transition-all duration-700 ${
+            s === "safe" ? "bg-emerald-400" : s === "warning" ? "bg-yellow-400" : "bg-red-400"
+          }`}
+          style={{ width: `${pct}%` }}
+        />
         <div className="absolute top-0 h-full w-px bg-yellow-400/50" style={{ left: `${tPct}%` }} />
       </div>
     </div>
@@ -112,14 +113,24 @@ function PositionMini({ pos }: { pos: (typeof POSITIONS)[0] }) {
 export default function DashboardPage() {
   const { address } = useAccount();
   const chainId = useChainId();
-  const chains = useChains();
-  const chain = chains.find((c) => c.id === chainId);
+  const chains  = useChains();
+  const chain   = chains.find((c) => c.id === chainId);
   const { data: balance } = useBalance({ address });
 
-  const atRisk = POSITIONS.filter((p) => p.status !== "safe").length;
-  const totalCollateral = POSITIONS.reduce((s, p) => s + p.collateralUsd, 0);
-  const totalDebt = POSITIONS.reduce((s, p) => s + p.debtUsd, 0);
-  const recentActions = HISTORY.filter((h) => h.action !== "NOOP").slice(0, 3);
+  const { state } = useSimulation();
+  const { positions, hfTrend, history, policy } = state;
+
+  const atRisk         = positions.filter((p) => p.status !== "safe").length;
+  const totalCollateral = positions.reduce((s, p) => s + p.collateralUsd, 0);
+  const totalDebt       = positions.reduce((s, p) => s + p.debtUsd, 0);
+  const recentActions   = history.filter((h) => h.action !== "NOOP").slice(0, 3);
+
+  // Rebuild portfolio breakdown from live positions
+  const liveBreakdown = [
+    { name: "ETH (Aave)",   value: positions.find((p) => p.protocol === "Aave V3")?.collateralUsd    ?? 0, color: "#e2e8f0" },
+    { name: "ETH (Morpho)", value: positions.find((p) => p.protocol === "Morpho Blue")?.collateralUsd ?? 0, color: "#94a3b8" },
+    { name: "USDC debt",    value: totalDebt, color: "#334155" },
+  ];
 
   return (
     <div className="w-full p-5 md:p-7 space-y-6">
@@ -128,14 +139,14 @@ export default function DashboardPage() {
       <div>
         <h1 className="text-[18px] font-semibold text-white tracking-[-0.02em]">Overview</h1>
         <p className="text-[12px] text-white/30 mt-0.5">
-          {POSITIONS.length} positions monitored · {chain?.name ?? "—"}
+          {positions.length} positions monitored · {chain?.name ?? "—"}
         </p>
       </div>
 
-      {/* ── Alert ──────────────────────────────────────────────────── */}
+      {/* ── Alert banner ───────────────────────────────────────────── */}
       {atRisk > 0 && (
         <div className="flex items-center gap-3 px-4 py-3 rounded-[8px] bg-yellow-400/[0.06] border border-yellow-400/20">
-          <AlertTriangle className="w-3.5 h-3.5 text-yellow-400 shrink-0" strokeWidth={1.5} />
+          <AlertTriangle className="w-3.5 h-3.5 text-yellow-400 shrink-0 animate-pulse" strokeWidth={1.5} />
           <p className="text-[12px] text-yellow-400/80 flex-1">
             {atRisk} position{atRisk > 1 ? "s" : ""} near trigger threshold — Custos is monitoring.
           </p>
@@ -147,9 +158,9 @@ export default function DashboardPage() {
 
       {/* ── Stats ──────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
-        <StatCard label="Total collateral" value={`$${totalCollateral.toLocaleString()}`} sub="Across all positions" icon={ShieldCheck} colorIndex={0} />
-        <StatCard label="Total debt"       value={`$${totalDebt.toLocaleString()}`}       sub="Active borrows"       icon={TrendingDown} colorIndex={1} />
-        <StatCard label="Protected"        value={String(POSITIONS.length)}                sub="Active positions"     icon={Activity} colorIndex={2} />
+        <StatCard label="Total collateral" value={`$${totalCollateral.toLocaleString()}`} sub="Across all positions" icon={ShieldCheck}   colorIndex={0} />
+        <StatCard label="Total debt"       value={`$${totalDebt.toLocaleString()}`}       sub="Active borrows"       icon={TrendingDown}  colorIndex={1} />
+        <StatCard label="Protected"        value={String(positions.length)}               sub="Active positions"     icon={Activity}      colorIndex={2} />
         <StatCard
           label="Wallet balance"
           value={balance ? `${parseFloat(formatEther(balance.value)).toFixed(4)} ${balance.symbol}` : "—"}
@@ -165,8 +176,9 @@ export default function DashboardPage() {
         {/* Left column */}
         <div className="space-y-5">
 
-          {/* HF Trend chart */}
+          {/* HF Trend chart — live-ticking */}
           <div
+            data-tour-id="tour-hf-chart"
             className="rounded-[10px] p-5"
             style={{
               background: "rgba(255,255,255,0.015)",
@@ -176,38 +188,39 @@ export default function DashboardPage() {
           >
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="text-[13px] font-medium text-white/80">Health Factor — 24h</h2>
-                <p className="text-[11px] text-white/25 mt-0.5">Dashed line = trigger threshold (1.30)</p>
+                <h2 className="text-[13px] font-medium text-white/80">Health Factor — Live</h2>
+                <p className="text-[11px] text-white/25 mt-0.5">
+                  Dashed line = trigger threshold ({policy.triggerHF.toFixed(2)})
+                </p>
               </div>
               <div className="flex items-center gap-3 text-[10px] font-mono text-white/30">
                 <span className="flex items-center gap-1">
-                  <span className="w-3 h-px bg-emerald-400 inline-block" /> Aave V3
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
+                  Aave V3
                 </span>
                 <span className="flex items-center gap-1">
-                  <span className="w-3 h-px bg-yellow-400 inline-block" /> Morpho
+                  <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse inline-block" />
+                  Morpho
                 </span>
               </div>
             </div>
             <ResponsiveContainer width="100%" height={180}>
-              <LineChart data={HF_TREND} margin={{ top: 4, right: 4, left: -28, bottom: 0 }}>
+              <LineChart data={hfTrend} margin={{ top: 4, right: 4, left: -28, bottom: 0 }}>
                 <XAxis
                   dataKey="t"
-                  tick={{ fontSize: 9, fill: "rgba(255,255,255,0.2)", fontFamily: "var(--font-jetbrains-mono)" }}
-                  axisLine={false}
-                  tickLine={false}
-                  interval={2}
+                  tick={{ fontSize: 9, fill: "rgba(255,255,255,0.2)", fontFamily: "monospace" }}
+                  axisLine={false} tickLine={false} interval={3}
                 />
                 <YAxis
                   domain={[1.0, 2.2]}
-                  tick={{ fontSize: 9, fill: "rgba(255,255,255,0.2)", fontFamily: "var(--font-jetbrains-mono)" }}
-                  axisLine={false}
-                  tickLine={false}
+                  tick={{ fontSize: 9, fill: "rgba(255,255,255,0.2)", fontFamily: "monospace" }}
+                  axisLine={false} tickLine={false}
                 />
                 <Tooltip content={<ChartTooltip />} />
-                <ReferenceLine y={1.3} stroke="rgba(250,204,21,0.3)" strokeDasharray="4 3" />
-                <ReferenceLine y={1.0} stroke="rgba(248,113,113,0.25)" strokeDasharray="4 3" />
-                <Line type="monotone" dataKey="aave"   stroke="#34d399" strokeWidth={1.5} dot={false} name="Aave V3" />
-                <Line type="monotone" dataKey="morpho" stroke="#facc15" strokeWidth={1.5} dot={false} name="Morpho" />
+                <ReferenceLine y={policy.triggerHF} stroke="rgba(250,204,21,0.3)"   strokeDasharray="4 3" />
+                <ReferenceLine y={1.0}              stroke="rgba(248,113,113,0.25)" strokeDasharray="4 3" />
+                <Line type="monotone" dataKey="aave"   stroke="#34d399" strokeWidth={1.5} dot={false} name="Aave V3" isAnimationActive={false} />
+                <Line type="monotone" dataKey="morpho" stroke="#facc15" strokeWidth={1.5} dot={false} name="Morpho"  isAnimationActive={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -221,7 +234,7 @@ export default function DashboardPage() {
               </button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {POSITIONS.map((p) => <PositionMini key={p.id} pos={p} />)}
+              {positions.map((p) => <PositionMini key={p.id} pos={p} triggerHF={policy.triggerHF} />)}
             </div>
           </div>
         </div>
@@ -229,27 +242,28 @@ export default function DashboardPage() {
         {/* Right column */}
         <div className="space-y-4">
 
-          {/* Portfolio donut */}
+          {/* Portfolio donut — live values */}
           <div className="rounded-[10px] border border-white/[0.06] bg-white/[0.015] p-5">
             <h2 className="text-[13px] font-medium text-white/70 mb-4">Portfolio breakdown</h2>
             <div className="flex items-center justify-center">
               <PieChart width={130} height={130}>
                 <Pie
-                  data={PORTFOLIO_BREAKDOWN}
+                  data={liveBreakdown}
                   cx={60} cy={60}
                   innerRadius={40} outerRadius={60}
                   paddingAngle={2}
                   dataKey="value"
                   strokeWidth={0}
+                  isAnimationActive={false}
                 >
-                  {PORTFOLIO_BREAKDOWN.map((entry, i) => (
+                  {liveBreakdown.map((entry, i) => (
                     <Cell key={i} fill={entry.color} />
                   ))}
                 </Pie>
               </PieChart>
             </div>
             <div className="space-y-2 mt-3">
-              {PORTFOLIO_BREAKDOWN.map((item) => (
+              {liveBreakdown.map((item) => (
                 <div key={item.name} className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
@@ -261,7 +275,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Recent executions */}
+          {/* Recent executions — live */}
           <div className="rounded-[10px] border border-white/[0.06] bg-white/[0.015] overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.04]">
               <h2 className="text-[13px] font-medium text-white/70">Recent executions</h2>
@@ -270,23 +284,40 @@ export default function DashboardPage() {
                 Live
               </span>
             </div>
-            {recentActions.map((item, i) => (
-              <div key={item.id} className={`flex items-start gap-3 px-4 py-3 ${i < recentActions.length - 1 ? "border-b border-white/[0.04]" : ""}`}>
-                <div className="w-5 h-5 rounded-[4px] bg-white/[0.04] flex items-center justify-center shrink-0 mt-0.5">
-                  {item.status === "success"
-                    ? <CheckCircle className="w-3 h-3 text-emerald-400" strokeWidth={1.5} />
-                    : <Clock className="w-3 h-3 text-white/20" strokeWidth={1.5} />
-                  }
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[12px] text-white/60">{item.action.replace("_", " ").toLowerCase().replace(/^\w/, c => c.toUpperCase())}</p>
-                  <p className="text-[10px] text-white/20 font-mono mt-0.5">{item.amount} {item.asset} · {item.source}</p>
-                </div>
-                <span className="font-mono text-[9px] text-white/15 shrink-0 mt-0.5">
-                  HF {item.hfBefore}→{item.hfAfter}
-                </span>
+            {recentActions.length === 0 ? (
+              <div className="px-4 py-6 text-center">
+                <p className="text-[11px] text-white/20">Watching for trigger events…</p>
               </div>
-            ))}
+            ) : (
+              recentActions.map((item, i) => (
+                <div key={item.id} className={`flex items-start gap-3 px-4 py-3 ${i < recentActions.length - 1 ? "border-b border-white/[0.04]" : ""}`}>
+                  <div className="w-5 h-5 rounded-[4px] bg-white/[0.04] flex items-center justify-center shrink-0 mt-0.5">
+                    {item.status === "success"
+                      ? <CheckCircle className="w-3 h-3 text-emerald-400" strokeWidth={1.5} />
+                      : <Clock       className="w-3 h-3 text-white/20"    strokeWidth={1.5} />
+                    }
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[12px] text-white/60">
+                      {item.action.replace("_", " ").toLowerCase().replace(/^\w/, (c) => c.toUpperCase())}
+                    </p>
+                    <p className="text-[10px] text-white/20 font-mono mt-0.5">
+                      {item.amount} {item.asset} · {item.source}
+                    </p>
+                  </div>
+                  <span className="font-mono text-[9px] text-white/15 shrink-0 mt-0.5">
+                    HF {item.hfBefore}→{item.hfAfter}
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Sim tick counter */}
+          <div className="rounded-[10px] border border-white/[0.04] bg-white/[0.01] px-4 py-3">
+            <p className="text-[10px] font-mono text-white/15">
+              Simulation tick #{state.tickCount} · updated {new Date(state.lastTick).toLocaleTimeString()}
+            </p>
           </div>
         </div>
       </div>
