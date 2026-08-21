@@ -7,10 +7,12 @@
  * settings across the dashboard. The SimulationEngine reads policy values
  * directly from this context so every settings change takes effect immediately.
  *
+ * Persistence: policy, isPaused, and telegramEnabled are written to
+ * localStorage under "custos:settings" on every relevant action and
+ * hydrated back on first render — so settings survive relog and refresh.
+ *
  * Formula used throughout:
  *   HF = (collateralUsd × liquidationThreshold) / debtUsd
- *
- * All dashboard pages consume this context via `useSimulation()`.
  */
 
 import React, {
@@ -18,9 +20,45 @@ import React, {
   useContext,
   useReducer,
   useCallback,
+  useEffect,
 } from "react";
-import type { Position, HistoryEntry, PositionStatus } from "@/lib/mock-data";
+import type { Position, HistoryEntry } from "@/lib/mock-data";
 import { POSITIONS, HISTORY, HF_TREND } from "@/lib/mock-data";
+
+/* ─────────────────────────────────────────────
+   localStorage helpers
+───────────────────────────────────────────── */
+const STORAGE_KEY = "custos:settings";
+
+type PersistedSettings = {
+  policy:          PolicySettings;
+  isPaused:        boolean;
+  telegramEnabled: boolean;
+};
+
+function loadSettings(): PersistedSettings | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<PersistedSettings>;
+    // Merge with defaults so new fields added later are always present
+    return {
+      policy:          { ...DEFAULT_POLICY, ...(parsed.policy ?? {}) },
+      isPaused:        parsed.isPaused        ?? false,
+      telegramEnabled: parsed.telegramEnabled ?? true,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function saveSettings(s: PersistedSettings) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(s));
+  } catch { /* storage full or blocked — silently ignore */ }
+}
 
 /* ─────────────────────────────────────────────
    Policy settings (owned by Settings page)
@@ -36,12 +74,11 @@ export type PolicySettings = {
   deleverageEnabled: boolean;
   slippageBps:       number;
   alertsEnabled:     boolean;
-  /** Per-type Telegram notification toggles */
-  notifHfWarning:      boolean;
-  notifTriggerFired:   boolean;
-  notifExecSuccess:    boolean;
-  notifExecFailed:     boolean;
-  notifPositionSafe:   boolean;
+  notifHfWarning:    boolean;
+  notifTriggerFired: boolean;
+  notifExecSuccess:  boolean;
+  notifExecFailed:   boolean;
+  notifPositionSafe: boolean;
 };
 
 export const DEFAULT_POLICY: PolicySettings = {
@@ -111,19 +148,20 @@ type Action =
   | { type: "UPDATE_POLICY";         payload: Partial<PolicySettings> };
 
 /* ─────────────────────────────────────────────
-   Initial state
+   Initial state — hydrates from localStorage
 ───────────────────────────────────────────── */
 function buildInitial(): SimState {
+  const saved = loadSettings();
   return {
     positions:       POSITIONS.map((p) => ({ ...p })),
     hfTrend:         HF_TREND.map((p)  => ({ ...p })),
     history:         HISTORY.map((h)   => ({ ...h })),
     alerts:          [],
     ethPrice:        { price: 3_400, change24h: -1.2 },
-    policy:          { ...DEFAULT_POLICY },
+    policy:          saved?.policy          ?? { ...DEFAULT_POLICY },
     isRunning:       false,
-    isPaused:        false,
-    telegramEnabled: true,
+    isPaused:        saved?.isPaused        ?? false,
+    telegramEnabled: saved?.telegramEnabled ?? true,
     tickCount:       0,
     lastTick:        Date.now(),
   };
@@ -190,10 +228,27 @@ const SimContext = createContext<SimContextValue | null>(null);
 export function SimulationProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, undefined, buildInitial);
 
-  const dismissAlert       = useCallback((id: string) => dispatch({ type: "DISMISS_ALERT",        payload: id }),  []);
-  const setPaused          = useCallback((v: boolean)  => dispatch({ type: "SET_PAUSED",           payload: v  }), []);
-  const setTelegramEnabled = useCallback((v: boolean)  => dispatch({ type: "SET_TELEGRAM_ENABLED", payload: v  }), []);
-  const updatePolicy       = useCallback((patch: Partial<PolicySettings>) => dispatch({ type: "UPDATE_POLICY", payload: patch }), []);
+  /* ── Persist to localStorage whenever relevant fields change ── */
+  useEffect(() => {
+    saveSettings({
+      policy:          state.policy,
+      isPaused:        state.isPaused,
+      telegramEnabled: state.telegramEnabled,
+    });
+  }, [state.policy, state.isPaused, state.telegramEnabled]);
+
+  const dismissAlert = useCallback(
+    (id: string) => dispatch({ type: "DISMISS_ALERT", payload: id }), []
+  );
+  const setPaused = useCallback(
+    (v: boolean) => dispatch({ type: "SET_PAUSED", payload: v }), []
+  );
+  const setTelegramEnabled = useCallback(
+    (v: boolean) => dispatch({ type: "SET_TELEGRAM_ENABLED", payload: v }), []
+  );
+  const updatePolicy = useCallback(
+    (patch: Partial<PolicySettings>) => dispatch({ type: "UPDATE_POLICY", payload: patch }), []
+  );
 
   const activeAlerts = state.alerts.filter((a) => !a.dismissed);
 
