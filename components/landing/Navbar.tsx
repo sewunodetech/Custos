@@ -50,20 +50,12 @@ export function Navbar() {
               Dashboard
             </Link>
           ) : (
-            <>
-              <Link
-                href="/connect"
-                className="hidden md:flex items-center justify-center h-8 px-3.5 rounded-[6px] border border-white/10 text-white/50 text-[12px] font-medium tracking-[-0.01em] hover:text-white/80 hover:border-white/20 transition-colors"
-              >
-                Connect wallet
-              </Link>
-              <a
-                href="#waitlist"
-                className="hidden md:flex items-center justify-center h-8 px-3.5 rounded-[6px] bg-white text-[#080808] text-[12px] font-semibold tracking-[-0.01em] hover:bg-white/90 transition-colors"
-              >
-                Join waitlist
-              </a>
-            </>
+            <Link
+              href="/connect"
+              className="hidden md:flex items-center justify-center h-8 px-3.5 rounded-[6px] border border-white/10 text-white/50 text-[12px] font-medium tracking-[-0.01em] hover:text-white/80 hover:border-white/20 transition-colors"
+            >
+              Connect wallet
+            </Link>
           )}
 
           {/* Mobile hamburger */}
